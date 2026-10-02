@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env*
+!.env.example
+.dev.vars*
+.superpowers/
+upload/
+private-imports/
+test-results/
+playwright-report/
+.wrangler/
+supabase/.temp/
+
+__pycache__/
