@@ -22,8 +22,11 @@ create table private.import_batches(id uuid primary key,content jsonb not null,a
 alter table public.ledger_entries add constraint ledger_import_batch_fk foreign key(import_batch_id) references private.import_batches(id);
 create unique index active_import_fingerprint on private.import_batches(fingerprint) where not rolled_back;
 create index orders_day on public.orders(day_id);create index audit_subject_date on public.audit_events(subject_id,created_at desc);create index ledger_member on public.ledger_entries(member_id);create index delivery_due on private.deliveries(status,next_attempt_at);
-create function private.provision_member() returns trigger language plpgsql security definer set search_path='' as $$ begin
- if new.email_confirmed_at is null or split_part(lower(new.email),'@',2)<>'rivercrane.vn' or (new.raw_app_meta_data->>'provider') is distinct from 'google' then raise exception 'FORBIDDEN: verified company Google identity required'; end if;
+create or replace function private.provision_member() returns trigger language plpgsql security definer set search_path='' as $$ begin
+ -- GoTrue inserts the OAuth user before confirming email in a subsequent update.
+ -- Pending Auth users receive no application membership or data access.
+ if new.email_confirmed_at is null then return new;end if;
+ if new.email is null or split_part(lower(new.email),'@',2)<>'rivercrane.vn' or (new.raw_app_meta_data->>'provider') is distinct from 'google' then raise exception 'FORBIDDEN: verified company Google identity required'; end if;
  insert into public.members(id,auth_user_id,email,display_name) values(new.id,new.id,lower(new.email),split_part(new.email,'@',1)) on conflict(email) do update set auth_user_id=excluded.auth_user_id where public.members.auth_user_id is null or public.members.auth_user_id=excluded.auth_user_id; if not found then raise exception 'FORBIDDEN: identity collision';end if;
  return new;end $$;
 create trigger provision_member after insert or update of email,email_confirmed_at on auth.users for each row execute function private.provision_member();

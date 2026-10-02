@@ -1,6 +1,6 @@
 import { PGlite } from "@electric-sql/pglite";
 import { beforeAll, afterAll, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 let db: PGlite;
 const admin = "11111111-1111-4111-8111-111111111111",
   employee = "22222222-2222-4222-8222-222222222222";
@@ -24,7 +24,10 @@ beforeAll(async () => {
   await db.exec(
     `create role anon;create role authenticated;create role service_role;create schema auth;create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,raw_app_meta_data jsonb);create function auth.uid() returns uuid language sql as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;grant usage on schema auth to authenticated;grant execute on function auth.uid() to authenticated;`,
   );
-  await db.exec(readFileSync("supabase/schemas/core.sql", "utf8"));
+  for (const file of readdirSync("supabase/migrations")
+    .filter((f) => f.endsWith(".sql"))
+    .sort())
+    await db.exec(readFileSync("supabase/migrations/" + file, "utf8"));
   await db.query(
     "insert into auth.users values($1,'admin@rivercrane.vn',now(),'{\"provider\":\"google\"}'),($2,'employee@rivercrane.vn',now(),'{\"provider\":\"google\"}')",
     [admin, employee],
@@ -499,11 +502,49 @@ it("rolls back imported history and accepts a corrected replacement without doub
     ]),
   ).rejects.toThrow(/VALIDATION/);
 });
-it('does not treat adjustment notes as import provenance',async()=>{
- await actor(admin);
- const legacy=await command('member.legacy',{displayName:'Provenance fixture'});
- const batchId=crypto.randomUUID();
- await command('import.apply',{batchId,fingerprint:'provenance-fixture',reconciled:true,weekStart:'2027-06-07',balances:[{memberId:legacy.id,amount:500}]});
- await command('finance.adjust',{memberId:legacy.id,amount:100,note:'Import '+batchId});
- await expect(command('import.rollback',{batchId,reason:'Wrong import'})).rejects.toThrow(/CONFLICT/);
+it("does not treat adjustment notes as import provenance", async () => {
+  await actor(admin);
+  const legacy = await command("member.legacy", {
+    displayName: "Provenance fixture",
+  });
+  const batchId = crypto.randomUUID();
+  await command("import.apply", {
+    batchId,
+    fingerprint: "provenance-fixture",
+    reconciled: true,
+    weekStart: "2027-06-07",
+    balances: [{ memberId: legacy.id, amount: 500 }],
+  });
+  await command("finance.adjust", {
+    memberId: legacy.id,
+    amount: 100,
+    note: "Import " + batchId,
+  });
+  await expect(
+    command("import.rollback", { batchId, reason: "Wrong import" }),
+  ).rejects.toThrow(/CONFLICT/);
+});
+it("defers membership until Google signup confirms email in its follow-up update", async () => {
+  const id = crypto.randomUUID();
+  await db.query(
+    "insert into auth.users values($1,'oauth-flow@rivercrane.vn',null,'{\"provider\":\"google\"}')",
+    [id],
+  );
+  expect(
+    (
+      await db.query("select id from public.members where auth_user_id=$1", [
+        id,
+      ])
+    ).rows,
+  ).toHaveLength(0);
+  await db.query("update auth.users set email_confirmed_at=now() where id=$1", [
+    id,
+  ]);
+  expect(
+    (
+      await db.query("select id from public.members where auth_user_id=$1", [
+        id,
+      ])
+    ).rows,
+  ).toHaveLength(1);
 });

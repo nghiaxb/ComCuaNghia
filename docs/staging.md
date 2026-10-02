@@ -24,3 +24,7 @@ Health endpoint trả 200 `{ok:true,configured:true}`; `configured` chỉ xác n
 ## Redeploy
 
 Build với VITE_SUPABASE_URL và VITE_SUPABASE_PUBLISHABLE_KEY tương ứng các biến public trong `wrangler.staging.jsonc`, rồi `npx wrangler deploy --config wrangler.staging.jsonc`. Chỉ thêm cron mỗi phút sau khi các secrets và Google Chat được cấu hình. Không sử dụng config staging cho production.
+
+## Sửa lỗi đăng nhập lần đầu
+
+Log `FORBIDDEN: verified company Google identity required` làm OAuth trả `Database error saving new user`. Trigger cũ kiểm tra email_confirmed_at ngay lúc INSERT, trong khi GoTrue xác nhận email ở UPDATE tiếp theo. Migration defer_google_member_until_confirmed không tạo membership cho Auth user đang chờ xác minh; khi xác minh xong vẫn kiểm tra provider Google và domain công ty rồi mới cấp membership employee. Đã kiểm tra insert → confirm trực tiếp trên staging trong transaction rollback; không giữ tài khoản test. 21 integration và 22 unit tests qua. Cần người dùng thử lại OAuth trong trình duyệt để xác nhận toàn luồng.
