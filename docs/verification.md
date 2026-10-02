@@ -16,3 +16,7 @@ Review độc lập phát hiện và đã sửa: quyền đọc dữ liệu tín
 Khác biệt với kế hoạch: SQL gộp trong migration ban đầu và dispatcher chung; dùng advisory transaction lock cho nhóm nhỏ. Chưa có Docker/Postgres server nên test RLS bằng PostgreSQL WASM, không tuyên bố tương đương Supabase end-to-end. CLI tạo migration trước đó; migration được điền từ schema đã test, unit test đảm bảo hai bản giống nhau. Playwright pinned 1.51.1 vì browser package mới không tải được trong môi trường. Auth login audit riêng, audit pagination, tự động xoay master key và staging gates vẫn chưa hoàn thành; xem deployment.md.
 
 Không gửi tin nhắn tới Google Chat thật trong kiểm thử. Không dùng test data làm dữ liệu thật. Không merge main hoặc triển khai production trong bước này.
+
+## Cập nhật staging 2026-10-03
+
+Đã tạo Supabase Singapore, apply migration và deploy Cloudflare staging. Chi tiết kiểm tra thực tế, cảnh báo advisor và những cấu hình còn thiếu nằm trong [staging.md](staging.md). Các kết quả local ở trên vẫn giữ nguyên; chưa xác nhận OAuth/Realtime/OCR/Chat end-to-end.

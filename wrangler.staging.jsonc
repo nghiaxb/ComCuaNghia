@@ -1,0 +1,20 @@
+{
+  "name": "com-cua-nghia-staging",
+  "account_id": "53729f393a9edbb836ab8deb1f454f4f",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-10-02",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "vars": {
+    "SUPABASE_URL": "https://veptcxaahkghwwfwjzvn.supabase.co",
+    "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_8kHhMSWX0btznTitRmV-7Q_i3KEeAmv",
+    "APP_URL": "https://com-cua-nghia-staging.nghiaapag.workers.dev"
+  },
+  "observability": {"enabled": true},
+  "workers_dev": true,
+  "preview_urls": false
+}
