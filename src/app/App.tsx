@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { NavLink, Routes, Route, Navigate } from "react-router-dom";
 import {
   UtensilsCrossed,
@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { snapshot, command } from "../lib/api";
+import { createRefresh } from "../lib/refresh";
 import type { Snapshot } from "../../shared/contracts";
 import { demo } from "../lib/demo";
 import Orders from "../features/Orders";
@@ -40,19 +41,13 @@ export default function App() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [connected, setConnected] = useState(false);
-  const reload = useCallback(async () => {
-    if (!supabase || preview) return;
-    setLoading(true);
-    try {
-      setData(await snapshot());
-      setError("");
-    } catch (e) {
-      setData(null);
-      setError(e instanceof Error ? e.message : "Không kết nối được");
-    } finally {
-      setLoading(false);
-    }
-  }, [preview]);
+  const refreshRef = useRef<ReturnType<typeof createRefresh<Snapshot>> | null>(
+    null,
+  );
+  const reload = useCallback(
+    () => refreshRef.current?.refresh() ?? Promise.resolve(),
+    [],
+  );
   useEffect(() => {
     if (!supabase) return;
     void supabase.auth
@@ -63,6 +58,9 @@ export default function App() {
     } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(!!s);
       if (!s) {
+        refreshRef.current?.dispose();
+        refreshRef.current = null;
+        setLoading(false);
         setData(null);
         setConnected(false);
       }
@@ -70,25 +68,37 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
   useEffect(() => {
-    if (session && !preview) void reload();
-  }, [session, preview, reload]);
-  useEffect(() => {
-    if (!session || preview || !supabase) return;
+    if (!session || preview || !supabase) {
+      setLoading(false);
+      return;
+    }
+    const refresh = createRefresh(
+      snapshot,
+      (value) => {
+        setData(value);
+        setError("");
+      },
+      (error) =>
+        setError(error instanceof Error ? error.message : "Không kết nối được"),
+      setLoading,
+    );
+    refreshRef.current = refresh;
+    void refresh.refresh();
     const channel = supabase
       .channel("lunch-updates")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public" },
-        () => void reload(),
+      .on("postgres_changes", { event: "*", schema: "public" }, () =>
+        refresh.invalidate(),
       )
       .subscribe((status) => {
         setConnected(status === "SUBSCRIBED");
-        if (status === "SUBSCRIBED") void reload();
+        if (status === "SUBSCRIBED") refresh.invalidate();
       });
-    const interval = setInterval(() => void reload(), 60000);
-    const onFocus = () => void reload();
+    const interval = setInterval(() => refresh.invalidate(), 60000);
+    const onFocus = () => refresh.invalidate();
     window.addEventListener("focus", onFocus);
     return () => {
+      refresh.dispose();
+      if (refreshRef.current === refresh) refreshRef.current = null;
       void supabase!.removeChannel(channel);
       clearInterval(interval);
       window.removeEventListener("focus", onFocus);
