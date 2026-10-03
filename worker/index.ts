@@ -3,7 +3,7 @@ import { commandSchema } from "../shared/contracts";
 import { authenticated } from "./auth";
 import type { Env } from "./env";
 import { encryptSecret, validateWebhook } from "./secrets";
-import { parseOcr } from "./ocr";
+import { parseOcr, requestOcr, OcrError } from "./ocr";
 import { runJobs } from "./jobs";
 const json = (data: unknown, status = 200) =>
   Response.json(data, {
@@ -87,33 +87,23 @@ export default {
           request_id: crypto.randomUUID(),
         });
         if (uploaded.error) throw uploaded.error;
-        const endpoint = new URL(env.OCR_WORKER_URL);
-        if (endpoint.protocol !== "https:")
-          throw Error("RETRYABLE: OCR endpoint");
-        const r = await fetch(endpoint, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-API-Key": env.OCR_API_KEY,
-          },
-          body: JSON.stringify({
-            imageBase64: body.imageBase64,
-            mimeType: body.mimeType,
-          }),
-          redirect: "error",
-          signal: AbortSignal.timeout(45000),
+        const output = await requestOcr(env.OCR_WORKER_URL, env.OCR_API_KEY, {
+          imageBase64: body.imageBase64,
+          mimeType: body.mimeType,
         });
-        if (!r.ok) throw Error("RETRYABLE: OCR không phản hồi thành công");
-        const output = (await r.json()) as { success: boolean; data: unknown };
-        if (!output.success) throw Error("VALIDATION: OCR");
-        const days = parseOcr(output.data, body.weekStart, body.defaultPrice);
+        const days = parseOcr(output, body.weekStart, body.defaultPrice);
         const drafted = await client.rpc("command", {
           kind: "menu.ocr",
           payload: { days, weekStart: body.weekStart, imagePath },
           expected_version: 0,
           request_id: crypto.randomUUID(),
         });
-        if (drafted.error) throw drafted.error;
+        if (drafted.error)
+          throw new OcrError(
+            "RETRYABLE",
+            "draft",
+            "Đã đọc menu nhưng chưa lưu được bản nháp. Vui lòng thử lại.",
+          );
         return json({
           days,
           draftId: drafted.data.id,
@@ -145,6 +135,15 @@ export default {
       if (error) throw error;
       return json(data);
     } catch (e) {
+      if (e instanceof OcrError) {
+        console.warn(
+          JSON.stringify({ event: "ocr.failed", code: e.code, stage: e.stage }),
+        );
+        return json(
+          { code: e.code, stage: e.stage, message: e.message },
+          e.code === "RETRYABLE" ? 503 : 422,
+        );
+      }
       const message =
         e instanceof Error
           ? e.message

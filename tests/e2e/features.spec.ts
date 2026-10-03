@@ -98,10 +98,69 @@ test("snapshot refresh preserves unsaved proxy edits", async ({ page }) => {
   await page.getByRole("button", { name: "Tăng", exact: true }).click();
   await page.getByRole("button", { name: "Refresh snapshot" }).click();
   await expect(page.getByLabel("Refresh count")).toHaveText("1");
-  await expect(page.getByRole("button", { name: "Tăng", exact: true })).toBeEnabled();
+  await expect(
+    page.getByRole("button", { name: "Tăng", exact: true }),
+  ).toBeEnabled();
   await expect(page.getByLabel("Ghi chú món")).toHaveValue("Thêm rau");
   await page.getByLabel("Lý do đặt hoặc chỉnh hộ").fill("Nhờ đặt");
   await page.getByRole("button", { name: "Lưu thay đổi" }).click();
   const command = JSON.parse(await page.getByLabel("Lệnh đã gửi").innerText());
-  expect(command.payload.items[0]).toMatchObject({ quantity: 3, note: "Thêm rau" });
+  expect(command.payload.items[0]).toMatchObject({
+    quantity: 3,
+    note: "Thêm rau",
+  });
+});
+
+test("selected and pasted menu images preview immediately and survive OCR errors", async ({
+  page,
+}) => {
+  await page.goto("/tests/fixtures/features.html?ocrError");
+  const bytes = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j5WQAAAAASUVORK5CYII=",
+    "base64",
+  );
+  await page
+    .getByLabel("Chọn ảnh menu", { exact: true })
+    .setInputFiles({ name: "menu.png", mimeType: "image/png", buffer: bytes });
+  await expect(
+    page.getByRole("img", { name: "Ảnh menu đã chọn" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("img", { name: "Ảnh menu đã chọn" }),
+  ).toHaveJSProperty("naturalWidth", 1);
+  await page.evaluate(() => {
+    const d = new DataTransfer();
+    d.items.add(
+      new File(
+        [
+          Uint8Array.from(
+            atob(
+              "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j5WQAAAAASUVORK5CYII=",
+            ),
+            (c) => c.charCodeAt(0),
+          ),
+        ],
+        "pasted-menu.png",
+        { type: "image/png" },
+      ),
+    );
+    document.dispatchEvent(
+      new ClipboardEvent("paste", {
+        clipboardData: d,
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+  });
+  await expect(
+    page
+      .getByRole("region", { name: "Ảnh menu OCR" })
+      .getByText("pasted-menu.png", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole("alert")).toHaveText(
+    "Chưa xử lý được ảnh menu. Bạn có thể thử chọn hoặc dán lại ảnh.",
+  );
+  await expect(
+    page.getByRole("img", { name: "Ảnh menu đã chọn" }),
+  ).toBeVisible();
 });

@@ -10,6 +10,18 @@ export default function ImageUpload({
 }) {
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState("");
+  const [preview, setPreview] = useState<{
+    url: string;
+    name: string;
+    size: number;
+  } | null>(null);
+  const previewUrl = useRef<string | null>(null);
+  useEffect(
+    () => () => {
+      if (previewUrl.current) URL.revokeObjectURL(previewUrl.current);
+    },
+    [],
+  );
   const pending = useRef(false);
   const depth = useRef(0);
   const receive = async (files: File[]) => {
@@ -26,10 +38,18 @@ export default function ImageUpload({
       setError("Chọn ảnh PNG, JPEG hoặc WebP dưới 10 MB.");
       return;
     }
+    if (previewUrl.current) URL.revokeObjectURL(previewUrl.current);
+    const url = URL.createObjectURL(file);
+    previewUrl.current = url;
+    setPreview({ url, name: file.name || "Ảnh từ clipboard", size: file.size });
     pending.current = true;
     setError("");
     try {
       await onImage(file);
+    } catch {
+      setError(
+        "Chưa xử lý được ảnh menu. Bạn có thể thử chọn hoặc dán lại ảnh.",
+      );
     } finally {
       pending.current = false;
     }
@@ -99,6 +119,21 @@ export default function ImageUpload({
           }}
         />
       </label>
+      {preview && (
+        <figure className="menu-image-preview">
+          <a
+            href={preview.url}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Xem ảnh menu kích thước đầy đủ"
+          >
+            <img src={preview.url} alt="Ảnh menu đã chọn" />
+          </a>
+          <figcaption>
+            <span>{preview.name}</span> · {Math.round(preview.size / 1024)} KB
+          </figcaption>
+        </figure>
+      )}
       {error && (
         <p className="error" role="alert">
           {error}

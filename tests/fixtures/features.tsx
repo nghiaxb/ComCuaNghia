@@ -47,6 +47,8 @@ function Fixture() {
         onImage={async (file) => {
           setCount((n) => n + 1);
           setPayload(file.name);
+          if (new URLSearchParams(location.search).has("ocrError"))
+            throw Error("OCR failed");
         }}
       />
       <output aria-label="Ảnh đã nhận">{count}</output>
