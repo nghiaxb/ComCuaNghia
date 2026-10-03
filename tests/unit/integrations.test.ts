@@ -56,13 +56,18 @@ it("shows before and after and marks actual cutoff without exposing finance data
     {
       eventId: "e",
       kind: "order.save",
+      actor: "B",
       subject: "A",
+      reason: "A nhờ B đặt",
       afterCutoff: true,
       before: { items: [{ name: "Cá", quantity: 1, note: "" }] },
       after: { items: [{ name: "Gà", quantity: 2, note: "ít cay" }] },
     },
     "https://app.test",
   );
+  expect(out.text).toContain("B · Cập nhật đơn cơm");
+  expect(out.text).toContain("Thành viên: A");
+  expect(out.text).toContain("Lý do: A nhờ B đặt");
   expect(out.text).toContain("Trước: Cá ×1");
   expect(out.text).toContain("Sau: Gà ×2 · ít cay");
   expect(out.text).toContain("SAU MỐC DỰ KIẾN");

@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import type { Snapshot } from "../../shared/contracts";
+import type { Snapshot, Order } from "../../shared/contracts";
 async function request<T>(path: string, body?: unknown): Promise<T> {
   const { data } = await supabase!.auth.getSession();
   const r = await fetch("/api/" + path, {
@@ -36,3 +36,8 @@ export const ocr = (
     version: number;
     days: { date: string; foods: { name: string; unitPrice: number }[] }[];
   }>("ocr", { imageBase64, mimeType, weekStart, defaultPrice });
+
+export const proxyOrder = (dayId: string, memberId: string) =>
+  request<Order | null>(
+    `proxy-order?dayId=${encodeURIComponent(dayId)}&memberId=${encodeURIComponent(memberId)}`,
+  );

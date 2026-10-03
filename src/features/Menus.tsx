@@ -1,5 +1,6 @@
+import ImageUpload from "./ImageUpload";
 import { useState } from "react";
-import { Upload, ScanLine, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import type { PageProps } from "./common";
 import { Field } from "./common";
 import { addDays, weekStart, vietnamDate } from "../../shared/time";
@@ -94,24 +95,7 @@ export default function Menus({ data, mutate, busy, readOnly }: PageProps) {
             }}
           />
         </Field>
-        <label className="upload">
-          <ScanLine size={38} />
-          <h2>Đưa thực đơn vào đây</h2>
-          <p>
-            Chọn ảnh menu để nhận diện món ăn. Bạn luôn được kiểm tra trước khi
-            công bố.
-          </p>
-          <span className="secondary">
-            <Upload size={16} /> Chọn ảnh menu
-          </span>
-          <input
-            hidden
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            disabled={readOnly || loading}
-            onChange={(e) => void upload(e.target.files?.[0])}
-          />
-        </label>
+        <ImageUpload disabled={readOnly || loading || busy} onImage={upload} />
         {loading && <p role="status">Đang đọc menu…</p>}
         {error && (
           <p className="error" role="alert">

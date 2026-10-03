@@ -27,7 +27,22 @@ export default {
         const { data, error } = await client.rpc("snapshot");
         if (error) throw error;
         const { data: deliveries } = await client.rpc("delivery_status");
-        return json({ ...data, deliveries: deliveries ?? [] });
+        const { data: recipients, error: recipientsError } =
+          await client.rpc("proxy_recipients");
+        if (recipientsError) throw recipientsError;
+        return json({
+          ...data,
+          recipients: recipients ?? [],
+          deliveries: deliveries ?? [],
+        });
+      }
+      if (request.method === "GET" && url.pathname === "/api/proxy-order") {
+        const { data, error } = await client.rpc("proxy_order", {
+          day_id: url.searchParams.get("dayId"),
+          recipient_id: url.searchParams.get("memberId"),
+        });
+        if (error) throw error;
+        return json(data);
       }
       if (request.method !== "POST")
         return json({ message: "Không tìm thấy" }, 404);

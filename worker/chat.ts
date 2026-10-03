@@ -2,6 +2,7 @@ export type ChatEvent = {
   eventId: string;
   actor?: string;
   subject?: string;
+  reason?: string;
   kind: string;
   afterCutoff?: boolean;
   before?: {
@@ -40,6 +41,7 @@ export function formatChat(p: ChatEvent, appUrl: string) {
   const lines = [
     `🍱 ${clean(p.actor ?? "Hệ thống")} · ${labels[p.kind] ?? clean(p.kind)}${p.afterCutoff ? " · SAU MỐC DỰ KIẾN" : ""}`,
   ];
+  if (p.reason) lines.push(`Lý do: ${clean(p.reason)}`);
   if (p.subject) lines.push(`Thành viên: ${clean(p.subject)}`);
   if (p.kind.startsWith("order."))
     lines.push("Trước: " + list(p.before), "Sau: " + list(p.after));

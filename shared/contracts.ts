@@ -103,6 +103,7 @@ export type Settings = {
   chatEnabled: boolean;
 };
 export type Snapshot = {
+  recipients?: { id: string; display_name: string }[];
   drafts: {
     id: string;
     week_start: string;

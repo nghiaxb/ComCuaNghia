@@ -28,3 +28,13 @@ Build với VITE_SUPABASE_URL và VITE_SUPABASE_PUBLISHABLE_KEY tương ứng c�
 ## Sửa lỗi đăng nhập lần đầu
 
 Log `FORBIDDEN: verified company Google identity required` làm OAuth trả `Database error saving new user`. Trigger cũ kiểm tra email_confirmed_at ngay lúc INSERT, trong khi GoTrue xác nhận email ở UPDATE tiếp theo. Migration defer_google_member_until_confirmed không tạo membership cho Auth user đang chờ xác minh; khi xác minh xong vẫn kiểm tra provider Google và domain công ty rồi mới cấp membership employee. Đã kiểm tra insert → confirm trực tiếp trên staging trong transaction rollback; không giữ tài khoản test. 21 integration và 22 unit tests qua. Cần người dùng thử lại OAuth trong trình duyệt để xác nhận toàn luồng.
+
+## OCR và đặt hộ — 2026-10-03
+
+Theo yêu cầu đã xác nhận: mọi nhân viên active được đặt/sửa/hủy hộ thành viên active. Màn hình Đặt cơm có chọn người nhận, tải đúng đơn hiện có và yêu cầu lý do khi thao tác hộ. Danh sách người nhận chỉ chia sẻ tên và mã; đơn cơm được tải riêng theo người nhận/ngày được chọn. RLS trực tiếp trên members/orders và công nợ/thanh toán giữ nguyên phạm vi trước đó. Audit hiển thị người thao tác và người nhận; Chat giữ lý do và trước/sau. Migration employee_proxy_orders thực hiện quyền mới. Mốc 17h vẫn là thông tin, không tự khóa; kỳ đã quyết toán vẫn cần mở lại theo quy trình tài chính.
+
+OCR hỗ trợ chọn file, kéo thả và dán ảnh Ctrl+V/⌘V trong màn hình Quản lý menu. Mỗi lần một ảnh, PNG/JPEG/WebP dưới 10MB và 25MP, không kích hoạt OCR khi dán văn bản, không nhận thêm ảnh khi đang xử lý. Vẫn cần kiểm tra nháp và chọn thông báo Chat trước công bố.
+
+22 integration, 22 unit và 6 Playwright tests đã qua, gồm employee proxy ở authenticated role, lý do/audit/cutoff/manual lock, các luồng nhập ảnh và chuyển người nhận. Review độc lập phát hiện và đã sửa input lý do bị vô hiệu hóa khi trống; browser regression đã qua. Không gọi OCR thật hoặc gửi Google Chat thử trong các test này.
+
+Kiểm tra staging ngày 2026-10-03: migration đặt hộ đã áp dụng; xác minh bằng giao dịch rollback với quyền employee thật rằng danh sách tên, RPC đơn theo người/ngày, RLS hồ sơ/đơn và nhật ký sau mốc dự kiến hoạt động. Không để lại dữ liệu kiểm thử hoặc thông báo Google Chat. Bổ sung regression giữ chỉnh sửa chưa lưu khi refresh snapshot.

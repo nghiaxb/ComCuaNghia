@@ -1150,3 +1150,4 @@ footer span {
     overflow-wrap: anywhere;
   }
 }
+.upload.dragging { background: #eaf2df; border-color: #315c3b; box-shadow: inset 0 0 0 2px #315c3b; }

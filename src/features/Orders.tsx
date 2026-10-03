@@ -1,19 +1,75 @@
+import { proxyOrder } from "../lib/api";
+import type { Order } from "../../shared/contracts";
 import { MealArt } from "./MealArt";
 import { useEffect, useState } from "react";
 import { ShoppingBag, Plus, Minus, LockKeyhole, Clock3 } from "lucide-react";
 import type { PageProps } from "./common";
 import { Empty, vnd, Field } from "./common";
 import { vietnamDate } from "../../shared/time";
-export default function Orders({ data, mutate, busy, readOnly }: PageProps) {
+export default function Orders({
+  data,
+  mutate,
+  busy,
+  readOnly,
+  loadRecipientOrder = proxyOrder,
+}: PageProps & { loadRecipientOrder?: typeof proxyOrder }) {
   const [date, setDate] = useState(
     data.days.find((d) => d.date >= vietnamDate())?.date ??
       data.days[0]?.date ??
       vietnamDate(),
   );
+  const [memberId, setMemberId] = useState(data.member.id);
+  const [reason, setReason] = useState("");
+  const proxy = memberId !== data.member.id;
+  const recipients = data.recipients ?? data.members.filter((m) => m.active);
+  const recipient = recipients.find((m) => m.id === memberId);
   const day = data.days.find((d) => d.date === date);
-  const order = data.orders.find(
-    (o) => o.day_id === day?.id && o.member_id === data.member.id,
+  const [remoteOrder, setRemoteOrder] = useState<{
+    dayId: string;
+    memberId: string;
+    order: Order | null;
+  } | null>(null);
+  const [recipientLoading, setRecipientLoading] = useState(false);
+  const [recipientError, setRecipientError] = useState("");
+  const localOrder = data.orders.find(
+    (o) => o.day_id === day?.id && o.member_id === memberId,
   );
+  const order =
+    localOrder ??
+    (remoteOrder &&
+    remoteOrder.dayId === day?.id &&
+    remoteOrder.memberId === memberId
+      ? (remoteOrder.order ?? undefined)
+      : undefined);
+  useEffect(() => {
+    let cancelled = false;
+    setRecipientError("");
+    if (!proxy || !day || localOrder || readOnly) {
+      setRecipientLoading(false);
+      return;
+    }
+    setRecipientLoading(true);
+    void loadRecipientOrder(day.id, memberId)
+      .then((order) => {
+        if (!cancelled) setRemoteOrder({ dayId: day.id, memberId, order });
+      })
+      .catch((error) => {
+        if (!cancelled)
+          setRecipientError(
+            error instanceof Error
+              ? error.message
+              : "Không tải được đơn của người nhận",
+          );
+      })
+      .finally(() => {
+        if (!cancelled) setRecipientLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [proxy, day?.id, memberId, localOrder?.version, data.orders, readOnly]);
+  const blocked =
+    busy || readOnly || day?.locked || recipientLoading || !!recipientError;
   const [cart, setCart] = useState<
     { menuItemId: string; quantity: number; note: string }[]
   >([]);
@@ -28,7 +84,7 @@ export default function Orders({ data, mutate, busy, readOnly }: PageProps) {
             }))
           : [],
       ),
-    [order?.id, order?.version],
+    [day?.id, memberId, order?.id, order?.version],
   );
   const foods = data.foods.filter((f) => f.day_id === day?.id);
   const total = cart.reduce(
@@ -141,7 +197,7 @@ export default function Orders({ data, mutate, busy, readOnly }: PageProps) {
                         className="icon-button"
                         aria-label={"Thêm " + food.name}
                         onClick={() => add(food.id)}
-                        disabled={day?.locked || readOnly}
+                        disabled={blocked}
                       >
                         <Plus size={19} />
                       </button>
@@ -154,11 +210,52 @@ export default function Orders({ data, mutate, busy, readOnly }: PageProps) {
         </section>
         <aside className="cart">
           <h2>
-            <ShoppingBag size={20} /> Bữa trưa của bạn
+            <ShoppingBag size={20} />{" "}
+            {proxy ? "Đặt cơm hộ đồng nghiệp" : "Bữa trưa của bạn"}
           </h2>
           <p className="muted">
-            {date} · {data.member.display_name}
+            {date} · {recipient?.display_name ?? data.member.display_name}
           </p>
+          <Field label="Đặt cơm cho">
+            <select
+              value={memberId}
+              disabled={busy || readOnly}
+              onChange={(e) => {
+                setMemberId(e.target.value);
+                setReason("");
+              }}
+            >
+              {recipients.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.display_name}
+                  {m.id === data.member.id ? " (tôi)" : ""}
+                </option>
+              ))}
+            </select>
+          </Field>
+          {proxy && (
+            <>
+              <Field label="Lý do đặt hoặc chỉnh hộ">
+                <input
+                  value={reason}
+                  maxLength={500}
+                  disabled={blocked}
+                  placeholder="Đồng nghiệp nhờ đặt…"
+                  onChange={(e) => setReason(e.target.value)}
+                />
+              </Field>
+              <p className="fine">
+                Ghi nhận bạn là người thao tác, {recipient?.display_name} là
+                người nhận cơm. Đơn hiện có sẽ được tải để bạn chỉnh.
+              </p>
+            </>
+          )}
+          {recipientLoading && <p role="status">Đang tải đơn người nhận…</p>}
+          {recipientError && (
+            <p className="error" role="alert">
+              {recipientError}
+            </p>
+          )}
           {!cart.length ? (
             <div className="cart-empty">Chọn một món ngon để bắt đầu nhé.</div>
           ) : (
@@ -172,7 +269,7 @@ export default function Orders({ data, mutate, busy, readOnly }: PageProps) {
                 <div className="quantity">
                   <button
                     aria-label="Giảm"
-                    disabled={readOnly || day?.locked}
+                    disabled={blocked}
                     onClick={() =>
                       setCart((old) =>
                         old
@@ -188,7 +285,7 @@ export default function Orders({ data, mutate, busy, readOnly }: PageProps) {
                   <span>{i.quantity}</span>
                   <button
                     aria-label="Tăng"
-                    disabled={readOnly || day?.locked}
+                    disabled={blocked}
                     onClick={() => add(i.menuItemId)}
                   >
                     <Plus size={13} />
@@ -199,7 +296,7 @@ export default function Orders({ data, mutate, busy, readOnly }: PageProps) {
                   placeholder="Ít cơm, không cay…"
                   maxLength={500}
                   value={i.note}
-                  disabled={readOnly || day?.locked}
+                  disabled={blocked}
                   onChange={(e) =>
                     setCart((old) =>
                       old.map((x) =>
@@ -217,11 +314,22 @@ export default function Orders({ data, mutate, busy, readOnly }: PageProps) {
           </div>
           <button
             className="primary wide"
-            disabled={!cart.length || !day || day.locked || busy || readOnly}
+            disabled={
+              !cart.length ||
+              !day ||
+              day.locked ||
+              blocked ||
+              (proxy && !reason.trim())
+            }
             onClick={() =>
               void mutate(
                 "order.save",
-                { dayId: day!.id, memberId: data.member.id, items: cart },
+                {
+                  dayId: day!.id,
+                  memberId,
+                  items: cart,
+                  ...(proxy ? { reason: reason.trim() } : {}),
+                },
                 order?.version ?? 0,
               )
             }
@@ -231,12 +339,15 @@ export default function Orders({ data, mutate, busy, readOnly }: PageProps) {
           {order?.status === "active" && (
             <button
               className="text-button wide"
-              disabled={busy || readOnly || day?.locked}
+              disabled={blocked || (proxy && !reason.trim())}
               onClick={() => {
                 if (confirm("Hủy đơn cơm ngày này?"))
                   void mutate(
                     "order.cancel",
-                    { orderId: order.id },
+                    {
+                      orderId: order.id,
+                      ...(proxy ? { reason: reason.trim() } : {}),
+                    },
                     order.version,
                   );
               }}

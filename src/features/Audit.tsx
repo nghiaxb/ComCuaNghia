@@ -3,6 +3,9 @@ import type { PageProps } from "./common";
 import { Empty } from "./common";
 export default function Audit({ data, mutate, busy, readOnly }: PageProps) {
   const [filter, setFilter] = useState("");
+  const memberName = (id: string | null) =>
+    data.members.find((m) => m.id === id)?.display_name ??
+    data.recipients?.find((m) => m.id === id)?.display_name;
   const events = data.events.filter((e) =>
     JSON.stringify(e).toLowerCase().includes(filter.toLowerCase()),
   );
@@ -30,10 +33,15 @@ export default function Audit({ data, mutate, busy, readOnly }: PageProps) {
               <span className="event-dot" />
               <div>
                 <b>
-                  {data.members.find((m) => m.id === e.actor_id)
-                    ?.display_name ?? "Hệ thống"}
+                  {memberName(e.actor_id) ?? "Hệ thống"}
                 </b>{" "}
                 <span className="tag">{e.kind}</span>
+                {e.subject_id && e.subject_id !== e.actor_id && (
+                  <span className="tag">
+                    Cho{" "}
+                    {memberName(e.subject_id) ?? "thành viên"}
+                  </span>
+                )}
                 {e.after_cutoff && (
                   <span className="tag amber">Sau mốc dự kiến</span>
                 )}

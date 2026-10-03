@@ -73,7 +73,7 @@ it("publishes without destroying orders, enforces ownership and lock, idempotenc
   expect((await command("order.save", payload, 0, request)).id).toBe(order.id);
   await expect(
     command("order.save", { ...payload, memberId: admin }),
-  ).rejects.toThrow(/FORBIDDEN/);
+  ).rejects.toThrow(/VALIDATION/);
   await expect(command("order.save", payload, 0)).rejects.toThrow(/CONFLICT/);
   await actor(admin);
   await command(
@@ -388,7 +388,8 @@ it("authenticated callers can execute snapshot and commands through public wrapp
   const s = (await db.query<any>("select public.snapshot() s")).rows[0].s;
   expect(s.member.id).toBe(employee);
   expect(s.members.map((m: any) => m.id)).toEqual([employee]);
-  expect(s.orders.every((o: any) => o.member_id === employee)).toBe(true);
+  expect(s.entries.every((e: any) => e.member_id === employee)).toBe(true);
+  expect(s.payments.every((p: any) => p.member_id === employee)).toBe(true);
   await command(
     "profile.save",
     { displayName: "Updated employee" },
@@ -547,4 +548,102 @@ it("defers membership until Google signup confirms email in its follow-up update
       ])
     ).rows,
   ).toHaveLength(1);
+});
+it("lets employees place, change and cancel proxy orders with reasons until manual lock", async () => {
+  await actor(admin);
+  await command("menu.publish", {
+    days: [
+      { date: "2025-01-06", foods: [{ name: "Proxy rice", unitPrice: 35000 }] },
+    ],
+    notifyChat: false,
+  });
+  const day = (
+    await db.query<any>("select * from public.days where date='2025-01-06'")
+  ).rows[0];
+  const food = (
+    await db.query<any>("select * from public.foods where day_id=$1", [day.id])
+  ).rows[0];
+  await actor(employee);
+  await db.exec("set role authenticated");
+  try {
+    const snapshot = (await db.query<any>("select public.snapshot() s")).rows[0]
+      .s;
+    expect(snapshot.members.some((m: any) => m.id === admin)).toBe(false);
+    const recipients = (
+      await db.query<any>("select public.proxy_recipients() r")
+    ).rows[0].r;
+    expect(recipients.some((m: any) => m.id === admin)).toBe(true);
+    expect(Object.keys(recipients[0]).sort()).toEqual(["display_name", "id"]);
+    const payload = {
+      dayId: day.id,
+      memberId: admin,
+      reason: "Colleague asked",
+      items: [{ menuItemId: food.id, quantity: 2, note: "No chili" }],
+    };
+    await expect(
+      command("order.save", { ...payload, reason: "   " }),
+    ).rejects.toThrow(/VALIDATION/);
+    const saved = await command("order.save", payload);
+    const changed = await command(
+      "order.save",
+      { ...payload, items: [{ menuItemId: food.id, quantity: 3 }] },
+      saved.version,
+    );
+    const logs = (
+      await db.query<any>(
+        "select * from public.audit_events where entity_id=$1 order by created_at",
+        [saved.id],
+      )
+    ).rows;
+    expect(logs.at(-1)).toMatchObject({
+      actor_id: employee,
+      subject_id: admin,
+      after_cutoff: true,
+    });
+    expect(logs.at(-1).after.reason).toBe("Colleague asked");
+    expect(
+      (
+        await db.query("select id from public.orders where member_id=$1", [
+          admin,
+        ])
+      ).rows.length,
+    ).toBe(0);
+    expect(
+      (
+        await db.query<any>("select public.proxy_order($1,$2) o", [
+          day.id,
+          admin,
+        ])
+      ).rows[0].o.id,
+    ).toBe(saved.id);
+    await expect(command("order.save", payload, saved.version)).rejects.toThrow(
+      /CONFLICT/,
+    );
+    await command(
+      "order.cancel",
+      { orderId: saved.id, reason: "Colleague cancelled" },
+      changed.version,
+    );
+  } finally {
+    await db.exec("reset role");
+  }
+  await actor(admin);
+  await command(
+    "day.lock",
+    { dayId: day.id, locked: true, reason: "Supplier final" },
+    day.version,
+  );
+  await actor(employee);
+  await expect(
+    command(
+      "order.save",
+      {
+        dayId: day.id,
+        memberId: admin,
+        reason: "Colleague asked",
+        items: [{ menuItemId: food.id, quantity: 1 }],
+      },
+      3,
+    ),
+  ).rejects.toThrow(/LOCKED/);
 });
