@@ -1,3 +1,8 @@
+import { useOrderDraft } from "./useOrderDraft";
+import ConfirmDialog from "./ConfirmDialog";
+import { useLocation } from "react-router-dom";
+import SharedOrderOverview from "./SharedOrderOverview";
+import BillSummary, { dayBill } from "./BillSummary";
 import { proxyOrder } from "../lib/api";
 import type { Order } from "../../shared/contracts";
 import { useEffect, useState } from "react";
@@ -11,18 +16,28 @@ export default function Orders({
   mutate,
   busy,
   readOnly,
+  commitOrder,
+  routeBlocking = false,
   loadRecipientOrder = proxyOrder,
 }: PageProps & { loadRecipientOrder?: typeof proxyOrder }) {
-  const [week, setWeek] = useState(defaultMenuWeek());
+  const initialQuery = new URLSearchParams(location.search);
+  const initialDate = initialQuery.get("date");
+  const [week, setWeek] = useState(
+    initialDate && /^\d{4}-\d{2}-\d{2}$/.test(initialDate)
+      ? weekStart(initialDate)
+      : defaultMenuWeek(),
+  );
   const days = data.days
     .filter((d) => weekStart(d.date) === week)
     .sort((a, b) => a.date.localeCompare(b.date));
-  const [selectedDate, setDate] = useState(vietnamDate());
+  const [selectedDate, setDate] = useState(initialDate ?? vietnamDate());
   const date = days.some((d) => d.date === selectedDate)
     ? selectedDate
     : (days[0]?.date ?? week);
   const settled = data.settledWeeks?.includes(week) ?? false;
-  const [memberId, setMemberId] = useState(data.member.id);
+  const [memberId, setMemberId] = useState(
+    initialQuery.get("member") ?? data.member.id,
+  );
   const [reason, setReason] = useState("");
   const proxy = memberId !== data.member.id;
   const recipients = data.recipients ?? data.members.filter((m) => m.active);
@@ -48,7 +63,7 @@ export default function Orders({
   useEffect(() => {
     let cancelled = false;
     setRecipientError("");
-    if (!proxy || !day || localOrder || readOnly) {
+    if (!proxy || !day || localOrder || readOnly || data.shared) {
       setRecipientLoading(false);
       return;
     }
@@ -72,31 +87,86 @@ export default function Orders({
       cancelled = true;
     };
   }, [proxy, day?.id, memberId, localOrder?.version, data.orders, readOnly]);
+  const [online, setOnline] = useState(navigator.onLine);
+  useEffect(() => {
+    const update = () => setOnline(navigator.onLine);
+    window.addEventListener("online", update);
+    window.addEventListener("offline", update);
+    return () => {
+      window.removeEventListener("online", update);
+      window.removeEventListener("offline", update);
+    };
+  }, []);
   const blocked =
+    !online ||
     busy ||
     readOnly ||
     day?.locked ||
     settled ||
     recipientLoading ||
     !!recipientError;
-  const [cart, setCart] = useState<
-    { menuItemId: string; quantity: number; note: string }[]
-  >([]);
-  useEffect(
-    () =>
-      setCart(
-        order?.status === "active"
-          ? order.items.map((i) => ({
-              menuItemId: i.menuItemId,
-              quantity: i.quantity,
-              note: i.note,
-            }))
-          : [],
-      ),
-    [day?.id, memberId, order?.id, order?.version],
-  );
+  const preferredAutomatic =
+    (data.member.order_save_mode ?? "autosave") === "autosave";
+  const draft = useOrderDraft({
+    routeBlocking,
+    dayId: day?.id ?? "",
+    memberId,
+    order,
+    automatic: preferredAutomatic,
+    enabled: !!day && !blocked && (!proxy || !!reason.trim()),
+    reason: proxy ? reason.trim() : "",
+    submit: async (r) => {
+      if (commitOrder) return commitOrder(r);
+      const ack = await mutate(r.kind, r.payload, r.version);
+      if (!ack || typeof ack.version !== "number")
+        throw new Error("Không nhận được xác nhận lưu đơn");
+      return ack as unknown as Order;
+    },
+  });
+  const automatic = draft.automatic;
+  const { cart } = draft.state;
+  const setCart = draft.setCart;
+  const route = useLocation();
+  useEffect(() => {
+    const q = new URLSearchParams(route.search),
+      date = q.get("date"),
+      recipient = q.get("member");
+    if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      setWeek(weekStart(date));
+      setDate(date);
+    }
+    if (
+      recipient &&
+      (data.recipients ?? data.members).some((m) => m.id === recipient)
+    ) {
+      setMemberId(recipient);
+      setReason("");
+    }
+  }, [route.search]);
+  const currentOrder = draft.state.order ?? order;
+  const saveStatus = draft.state.status;
+  const statusText =
+    draft.state.message ||
+    (!online
+      ? "Mất kết nối · bản nháp được giữ"
+      : blocked
+        ? "Ngày/đơn đang được bảo vệ"
+        : saveStatus === "saving"
+          ? "Đang lưu…"
+          : saveStatus === "saved"
+            ? "Đã lưu"
+            : draft.state.dirty
+              ? proxy && !reason.trim()
+                ? "Nhập lý do để lưu đơn đặt hộ"
+                : automatic
+                  ? "Chờ tự lưu…"
+                  : "Có thay đổi chưa gửi"
+              : automatic
+                ? "Tự lưu đang bật"
+                : "Bấm gửi để lưu đơn");
   const foods = data.foods.filter((f) => f.day_id === day?.id && f.active);
-  const orderedItems = order?.status === "active" ? order.items : [];
+  const orderedItems =
+    currentOrder?.status === "active" ? currentOrder.items : [];
   const total = cart.reduce(
     (sum, i) =>
       sum +
@@ -118,13 +188,38 @@ export default function Orders({
     );
   }
   function decrease(id: string) {
-    setCart((old) => old.map((item) => item.menuItemId === id ? {...item, quantity: item.quantity - 1} : item).filter((item) => item.quantity > 0));
+    setCart((old) =>
+      old
+        .map((item) =>
+          item.menuItemId === id
+            ? { ...item, quantity: item.quantity - 1 }
+            : item,
+        )
+        .filter((item) => item.quantity > 0),
+    );
   }
-  const saveBlocked = !cart.length || !day || blocked || (proxy && !reason.trim());
+  const saveBlocked =
+    !day ||
+    blocked ||
+    (proxy && !reason.trim()) ||
+    ["saving", "uncertain", "conflict", "locked", "error"].includes(
+      saveStatus,
+    ) ||
+    (!cart.length && !draft.state.dirty);
   function saveOrder() {
-    if (saveBlocked || !day) return;
-    void mutate("order.save", {dayId: day.id, memberId, items: cart, ...(proxy ? {reason: reason.trim()} : {})}, order?.version ?? 0);
+    if (!saveBlocked) void draft.submit();
   }
+  const cta = automatic
+    ? saveStatus === "saving"
+      ? "Đang lưu…"
+      : draft.state.dirty
+        ? "Lưu ngay"
+        : "Đã lưu"
+    : busy
+      ? "Đang lưu…"
+      : currentOrder
+        ? "Lưu thay đổi"
+        : "Đặt bữa trưa";
   return (
     <div className="orders-page">
       <div className="page-title">
@@ -140,7 +235,7 @@ export default function Orders({
       </div>
       <WeekPicker
         value={week}
-        onChange={setWeek}
+        onChange={(value) => draft.guard(() => setWeek(value))}
         availableWeeks={data.days.map((d) => weekStart(d.date))}
         label="Tuần đặt cơm"
       />
@@ -149,7 +244,7 @@ export default function Orders({
           <button
             key={d.id}
             className={date === d.date ? "selected" : ""}
-            onClick={() => setDate(d.date)}
+            onClick={() => draft.guard(() => setDate(d.date))}
           >
             <small>
               {new Date(d.date + "T12:00:00").toLocaleDateString("vi-VN", {
@@ -167,7 +262,10 @@ export default function Orders({
             <input
               type="date"
               value={date}
-              onChange={(e) => setDate(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                draft.guard(() => setDate(value));
+              }}
             />
           </Field>
         )}
@@ -195,19 +293,40 @@ export default function Orders({
           ) : (
             <ul className="meal-list" aria-label="Danh sách món">
               {foods.map((food, index) => {
-                const quantity = cart.find((item) => item.menuItemId === food.id)?.quantity ?? 0;
+                const quantity =
+                  cart.find((item) => item.menuItemId === food.id)?.quantity ??
+                  0;
                 return (
-                  <li className={"meal-row" + (quantity ? " chosen" : "")} key={food.id}>
-                    <span className="meal-number" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
+                  <li
+                    className={"meal-row" + (quantity ? " chosen" : "")}
+                    key={food.id}
+                  >
+                    <span className="meal-number" aria-hidden="true">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
                     <div className="meal-info">
                       <h3>{food.name}</h3>
                       <span>{vnd(food.unit_price)} / suất</span>
                       {quantity > 0 && <small>Đã chọn</small>}
                     </div>
                     <div className="meal-quantity">
-                      <button aria-label={"Giảm " + food.name} disabled={blocked || !quantity} onClick={() => decrease(food.id)}><Minus size={16} /></button>
-                      <output aria-label={"Số lượng " + food.name}>{quantity}</output>
-                      <button aria-label={"Thêm " + food.name} disabled={blocked || quantity >= 100} onClick={() => add(food.id)}><Plus size={16} /></button>
+                      <button
+                        aria-label={"Giảm " + food.name}
+                        disabled={blocked || !quantity}
+                        onClick={() => decrease(food.id)}
+                      >
+                        <Minus size={16} />
+                      </button>
+                      <output aria-label={"Số lượng " + food.name}>
+                        {quantity}
+                      </output>
+                      <button
+                        aria-label={"Thêm " + food.name}
+                        disabled={blocked || quantity >= 100}
+                        onClick={() => add(food.id)}
+                      >
+                        <Plus size={16} />
+                      </button>
                     </div>
                   </li>
                 );
@@ -228,8 +347,11 @@ export default function Orders({
               value={memberId}
               disabled={busy || readOnly}
               onChange={(e) => {
-                setMemberId(e.target.value);
-                setReason("");
+                const value = e.target.value;
+                draft.guard(() => {
+                  setMemberId(value);
+                  setReason("");
+                });
               }}
             >
               {recipients.map((m) => (
@@ -311,7 +433,9 @@ export default function Orders({
                       setCart((old) =>
                         old
                           .map((x) =>
-                            x === i ? { ...x, quantity: x.quantity - 1 } : x,
+                            x.menuItemId === i.menuItemId
+                              ? { ...x, quantity: x.quantity - 1 }
+                              : x,
                           )
                           .filter((x) => x.quantity > 0),
                       )
@@ -337,13 +461,74 @@ export default function Orders({
                   onChange={(e) =>
                     setCart((old) =>
                       old.map((x) =>
-                        x === i ? { ...x, note: e.target.value } : x,
+                        x.menuItemId === i.menuItemId
+                          ? { ...x, note: e.target.value }
+                          : x,
                       ),
                     )
                   }
                 />
               </div>
             ))
+          )}
+          <Field label="Cách lưu đơn">
+            <select
+              value={automatic ? "autosave" : "manual"}
+              disabled={
+                busy ||
+                readOnly ||
+                saveStatus === "saving" ||
+                saveStatus === "uncertain"
+              }
+              onChange={(e) => {
+                const mode = e.target.value;
+                if (
+                  mode === "autosave" &&
+                  draft.state.dirty &&
+                  !confirm("Bật tự lưu và gửi bản nháp hiện tại?")
+                )
+                  return;
+                if (mode === "autosave") draft.allowAutomatic();
+                void mutate(
+                  "profile.save",
+                  {
+                    displayName: data.member.display_name,
+                    orderSaveMode: mode,
+                  },
+                  data.member.version,
+                );
+              }}
+            >
+              <option value="autosave">Tự lưu</option>
+              <option value="manual">Bấm gửi</option>
+            </select>
+          </Field>
+          <p
+            role="status"
+            aria-label="Trạng thái lưu đơn"
+            className={
+              ["conflict", "error", "locked", "uncertain"].includes(saveStatus)
+                ? "error"
+                : "fine"
+            }
+          >
+            {statusText}
+          </p>
+          {saveStatus === "uncertain" && (
+            <button className="secondary" onClick={() => void draft.retry()}>
+              Thử lưu lại
+            </button>
+          )}
+          {["conflict", "locked", "error"].includes(saveStatus) && (
+            <button
+              className="secondary"
+              onClick={() => {
+                if (confirm("Bỏ bản nháp và tải đơn mới nhất?"))
+                  draft.discard();
+              }}
+            >
+              Tải đơn mới nhất
+            </button>
           )}
           <div className="cart-total">
             <span>Tạm tính</span>
@@ -354,22 +539,18 @@ export default function Orders({
             disabled={saveBlocked}
             onClick={saveOrder}
           >
-            {busy ? "Đang lưu…" : order ? "Lưu thay đổi" : "Đặt bữa trưa"}
+            {cta}
           </button>
-          {order?.status === "active" && (
+          {currentOrder?.status === "active" && (
             <button
               className="text-button wide"
-              disabled={blocked || (proxy && !reason.trim())}
+              disabled={
+                blocked ||
+                (proxy && !reason.trim()) ||
+                ["saving", "uncertain", "conflict"].includes(saveStatus)
+              }
               onClick={() => {
-                if (confirm("Hủy đơn cơm ngày này?"))
-                  void mutate(
-                    "order.cancel",
-                    {
-                      orderId: order.id,
-                      ...(proxy ? { reason: reason.trim() } : {}),
-                    },
-                    order.version,
-                  );
+                if (confirm("Hủy đơn cơm ngày này?")) void draft.cancel();
               }}
             >
               Hủy đơn
@@ -380,11 +561,88 @@ export default function Orders({
           </p>
         </aside>
       </div>
+      {day && (
+        <>
+          <BillSummary bill={dayBill(data, day.id)} />
+          <SharedOrderOverview data={data} dayId={day.id} compact />
+        </>
+      )}
+      {draft.modeConsent && (
+        <ConfirmDialog
+          title="Bật tự lưu cho bản nháp?"
+          busy={false}
+          onClose={draft.keepManual}
+        >
+          <p>
+            Cài đặt đã chuyển sang tự lưu. Bản nháp hiện tại chỉ được gửi khi
+            bạn đồng ý.
+          </p>
+          <div className="actions">
+            <button autoFocus className="secondary" onClick={draft.keepManual}>
+              Giữ bấm gửi cho bản nháp
+            </button>
+            <button className="primary" onClick={draft.approveMode}>
+              Bật tự lưu và gửi
+            </button>
+          </div>
+        </ConfirmDialog>
+      )}
+      {draft.navigation && (
+        <ConfirmDialog
+          title="Bản nháp chưa lưu"
+          busy={saveStatus === "saving"}
+          onClose={draft.closeNavigation}
+        >
+          <p>
+            {saveStatus === "saving"
+              ? "Đang gửi đơn. Chờ xác nhận trước khi chuyển."
+              : saveStatus === "uncertain"
+                ? "Chưa nhận được xác nhận. Yêu cầu trước có thể đã lưu; thử lại để kiểm tra trước khi rời."
+                : "Có thay đổi chưa lưu. Rời màn hình sẽ bỏ bản nháp này."}
+          </p>
+          <div className="actions">
+            <button
+              autoFocus
+              className="secondary"
+              onClick={draft.closeNavigation}
+            >
+              Tiếp tục chỉnh
+            </button>
+            <button
+              className="primary"
+              disabled={saveBlocked}
+              onClick={() => void draft.submit()}
+            >
+              Lưu rồi kiểm tra
+            </button>
+            <button
+              className="danger"
+              disabled={saveStatus === "saving"}
+              onClick={draft.leave}
+            >
+              Bỏ bản nháp và chuyển
+            </button>
+          </div>
+        </ConfirmDialog>
+      )}
       <section className="mobile-order-bar" aria-label="Thao tác đơn cơm">
-        <button className="text-button" onClick={() => document.getElementById("order-cart")?.scrollIntoView({behavior: "smooth", block: "start"})}>
-          <ShoppingBag size={18} /><span>{cart.reduce((sum, item) => sum + item.quantity, 0)} suất · Xem đơn<strong>{vnd(total)}</strong></span>
+        <button
+          className="text-button"
+          onClick={() =>
+            document
+              .getElementById("order-cart")
+              ?.scrollIntoView({ behavior: "smooth", block: "start" })
+          }
+        >
+          <ShoppingBag size={18} />
+          <span>
+            {cart.reduce((sum, item) => sum + item.quantity, 0)} suất · Xem đơn
+            <strong>{vnd(total)}</strong>
+          </span>
         </button>
-        <button className="primary" disabled={saveBlocked} onClick={saveOrder}>{busy ? "Đang lưu…" : "Lưu đơn"}</button>
+        <button className="primary" disabled={saveBlocked} onClick={saveOrder}>
+          {automatic ? cta : busy ? "Đang lưu…" : "Lưu đơn"}
+        </button>
       </section>
     </div>
   );

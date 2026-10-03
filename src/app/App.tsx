@@ -1,3 +1,5 @@
+import OrderNavigationBoundary from "../features/OrderNavigationBoundary";
+import { requestOrderNavigation } from "../features/useOrderDraft";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { NavLink, Routes, Route, Navigate } from "react-router-dom";
 import {
@@ -16,7 +18,7 @@ import {
 import { supabase } from "../lib/supabase";
 import { snapshot, command } from "../lib/api";
 import { createRefresh } from "../lib/refresh";
-import type { Snapshot } from "../../shared/contracts";
+import type { Snapshot, Order } from "../../shared/contracts";
 import { demo } from "../lib/demo";
 import Orders from "../features/Orders";
 import Menus from "../features/Menus";
@@ -138,11 +140,27 @@ export default function App() {
           }
         },
         busy,
+        connected,
+        routeBlocking: true,
+        commitOrder: async (
+          r: import("../lib/order-autosave").OrderRequest,
+        ) => {
+          if (preview) throw new Error("Bản xem trước");
+          const ack = (await command(
+            r.kind,
+            r.payload,
+            r.version,
+            r.requestId,
+          )) as unknown as Order;
+          refreshRef.current?.invalidate();
+          return ack;
+        },
         readOnly: preview,
       }
     : null;
   return (
     <div className="app">
+      <OrderNavigationBoundary />
       <aside className="sidebar">
         <NavLink to="/order" className="brand">
           <span>
@@ -155,9 +173,7 @@ export default function App() {
         <p className="nav-label">KHÔNG GIAN CỦA BẠN</p>
         <nav>
           {nav
-            .filter(
-              ([path]) => access || !["/menus", "/summary"].includes(path),
-            )
+            .filter(([path]) => access || path !== "/menus")
             .map(([path, label, Icon]) => (
               <NavLink key={path} to={path}>
                 <Icon size={19} />
@@ -184,7 +200,9 @@ export default function App() {
             <button
               className="icon-button"
               aria-label="Đăng xuất"
-              onClick={() => void supabase?.auth.signOut()}
+              onClick={() =>
+                requestOrderNavigation(() => void supabase?.auth.signOut())
+              }
             >
               <LogOut size={16} />
             </button>
@@ -246,12 +264,7 @@ export default function App() {
                   access ? <Menus {...props} /> : <Navigate to="/order" />
                 }
               />
-              <Route
-                path="/summary"
-                element={
-                  access ? <Summary {...props} /> : <Navigate to="/order" />
-                }
-              />
+              <Route path="/summary" element={<Summary {...props} />} />
               <Route path="/finance" element={<Finance {...props} />} />
               <Route path="/audit" element={<Audit {...props} />} />
               <Route

@@ -1,3 +1,5 @@
+import BillSummary,{dayBill} from './BillSummary';
+import BillEditor from './BillEditor';
 import { useEffect, useState } from "react";
 import { QRPay } from "vietnam-qr-pay";
 import QRCode from "qrcode";
@@ -11,9 +13,6 @@ export default function Finance({ data, mutate, busy, readOnly }: PageProps) {
   const [adjustNote, setAdjustNote] = useState("");
   const [week, setWeek] = useState(defaultMenuWeek());
   const [qr, setQr] = useState("");
-  const [totals, setTotals] = useState<Record<string, number>>({});
-  const [covered, setCovered] = useState<Record<string, string[]>>({});
-  const [sponsors, setSponsors] = useState<Record<string, string[]>>({});
   const [amount, setAmount] = useState(0);
   const [ref, setRef] = useState("");
   const [csvError, setCsvError] = useState("");
@@ -51,12 +50,6 @@ export default function Finance({ data, mutate, busy, readOnly }: PageProps) {
     };
   }, [mine, cfg.bankCode, cfg.accountNumber, purpose]);
   const days = data.days.filter((d) => weekStart(d.date) === week);
-  const toggle = (map: Record<string, string[]>, day: string, id: string) => ({
-    ...map,
-    [day]: map[day]?.includes(id)
-      ? map[day].filter((x) => x !== id)
-      : [...(map[day] ?? []), id],
-  });
   async function exportCsv() {
     try {
       if (!readOnly)
@@ -230,67 +223,7 @@ export default function Finance({ data, mutate, busy, readOnly }: PageProps) {
             <h2>Quyết toán tuần</h2>
             <span>{settled ? "Đã quyết toán" : "Chưa quyết toán"}</span>
           </div>
-          {days.map((d) => {
-            const orders = data.orders.filter(
-              (o) => o.day_id === d.id && o.status === "active",
-            );
-            const original = orders.reduce(
-              (s, o) =>
-                s + o.items.reduce((n, i) => n + i.quantity * i.unitPrice, 0),
-              0,
-            );
-            return (
-              <div className="settle-day" key={d.id}>
-                <div className="form-row">
-                  <b>{d.date}</b>
-                  <span>{d.locked ? "Đã khóa" : "Chưa khóa"}</span>
-                  <Field label="Tổng thực trả quán">
-                    <input
-                      type="number"
-                      min="0"
-                      value={totals[d.id] ?? original}
-                      onChange={(e) =>
-                        setTotals((x) => ({
-                          ...x,
-                          [d.id]: Number(e.target.value),
-                        }))
-                      }
-                    />
-                  </Field>
-                </div>
-                {orders.map((o) => (
-                  <div className="order-row" key={o.id}>
-                    <span>
-                      {
-                        data.members.find((m) => m.id === o.member_id)
-                          ?.display_name
-                      }
-                    </span>
-                    <label className="checkbox">
-                      <input
-                        type="checkbox"
-                        checked={covered[d.id]?.includes(o.member_id) ?? false}
-                        onChange={() =>
-                          setCovered((x) => toggle(x, d.id, o.member_id))
-                        }
-                      />
-                      Được bao
-                    </label>
-                    <label className="checkbox">
-                      <input
-                        type="checkbox"
-                        checked={sponsors[d.id]?.includes(o.member_id) ?? false}
-                        onChange={() =>
-                          setSponsors((x) => toggle(x, d.id, o.member_id))
-                        }
-                      />
-                      Trả thay
-                    </label>
-                  </div>
-                ))}
-              </div>
-            );
-          })}
+          {days.map(d=><div className="settle-day" key={d.id}><h3>{d.date} · {d.locked?'Đã khóa':'Chưa khóa'}</h3><BillSummary bill={dayBill(data,d.id)}/><BillEditor key={d.id+":"+dayBill(data,d.id).version} data={data} bill={dayBill(data,d.id)} mutate={mutate} busy={busy} readOnly={readOnly}/></div>)}
           <div className="actions">
             <button
               className="primary"
@@ -299,15 +232,13 @@ export default function Finance({ data, mutate, busy, readOnly }: PageProps) {
                 readOnly ||
                 settled ||
                 !days.length ||
-                days.some((d) => !d.locked)
+                days.some((d) => !d.locked || dayBill(data,d.id).warnings.length>0)
               }
               onClick={() => {
                 if (confirm("Quyết toán tuần và ghi công nợ?"))
                   void mutate("finance.settle", {
                     weekStart: week,
-                    totals,
-                    covered,
-                    sponsors,
+                    billVersions:Object.fromEntries(days.map(d=>[d.id,dayBill(data,d.id).version])),
                   });
               }}
             >

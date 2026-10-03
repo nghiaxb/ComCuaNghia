@@ -1,6 +1,9 @@
+import SharedOrderOverview from './SharedOrderOverview';
+import BillSummary,{dayBill} from './BillSummary';
+import BillEditor from './BillEditor';
 import { useState } from "react";
 import type { PageProps } from "./common";
-import { Empty, Person, vnd, Field } from "./common";
+import { Empty, vnd } from "./common";
 import WeekPicker from "./WeekPicker";
 import { defaultMenuWeek, weekStart } from "../../shared/time";
 export default function Summary({ data, mutate, busy, readOnly }: PageProps) {
@@ -44,9 +47,7 @@ export default function Summary({ data, mutate, busy, readOnly }: PageProps) {
     }),
   );
   const count = [...groups.values()].reduce((s, i) => s + i.quantity, 0);
-  const [member, setMember] = useState("");
-  const [food, setFood] = useState("");
-  const [reason, setReason] = useState("");
+  const staff=data.member.role!=="employee";
   return (
     <>
       <div className="page-title">
@@ -71,7 +72,7 @@ export default function Summary({ data, mutate, busy, readOnly }: PageProps) {
         value={week}
         onChange={(value) => {
           setWeek(value);
-          setFood("");
+
         }}
         availableWeeks={data.days.map((d) => weekStart(d.date))}
         label="Tuần tổng hợp"
@@ -155,7 +156,7 @@ export default function Summary({ data, mutate, busy, readOnly }: PageProps) {
             </table>
           </div>
         )}
-        <button
+        {staff && <button
           className={day?.locked ? "secondary" : "primary"}
           disabled={!day || busy || readOnly || settled}
           onClick={() => {
@@ -171,91 +172,9 @@ export default function Summary({ data, mutate, busy, readOnly }: PageProps) {
           }}
         >
           {day?.locked ? "Mở khóa ngày" : "Khóa ngày đặt cơm"}
-        </button>
+        </button>}
       </div>
-      <section className="panel">
-        <h2>Chi tiết người đặt</h2>
-        {orders.map((o) => (
-          <div className="order-row" key={o.id}>
-            <Person
-              name={
-                data.members.find((m) => m.id === o.member_id)?.display_name ??
-                "Thành viên"
-              }
-            />
-            <span>
-              {o.items.map((i) => `${i.name} ×${i.quantity}`).join(", ")}
-            </span>
-            <strong>
-              {vnd(o.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0))}
-            </strong>
-          </div>
-        ))}
-      </section>
-      <section className="panel">
-        <h2>Đặt hộ thành viên</h2>
-        <div className="form-row">
-          <Field label="Thành viên">
-            <select value={member} onChange={(e) => setMember(e.target.value)}>
-              <option value="">Chọn người</option>
-              {data.members
-                .filter((m) => m.active)
-                .map((m) => (
-                  <option value={m.id} key={m.id}>
-                    {m.display_name}
-                  </option>
-                ))}
-            </select>
-          </Field>
-          <Field label="Món ăn">
-            <select value={food} onChange={(e) => setFood(e.target.value)}>
-              <option value="">Chọn món</option>
-              {data.foods
-                .filter((f) => f.day_id === dayId && f.active)
-                .map((f) => (
-                  <option value={f.id} key={f.id}>
-                    {f.name}
-                  </option>
-                ))}
-            </select>
-          </Field>
-          <Field label="Lý do">
-            <input value={reason} onChange={(e) => setReason(e.target.value)} />
-          </Field>
-        </div>
-        <button
-          className="primary"
-          disabled={
-            busy ||
-            readOnly ||
-            settled ||
-            !day ||
-            day.locked ||
-            !member ||
-            !food ||
-            !reason
-          }
-          onClick={() => {
-            const existing = data.orders.find(
-              (o) => o.day_id === dayId && o.member_id === member,
-            );
-            if (existing && !confirm("Thay đơn hiện tại bằng món vừa chọn?"))
-              return;
-            void mutate(
-              "order.save",
-              {
-                dayId,
-                memberId: member,
-                items: [{ menuItemId: food, quantity: 1, note: "" }],
-                reason,
-              },
-              existing?.version ?? 0,
-            );
-          }}
-        >
-          Lưu đơn đặt hộ
-        </button>
-      </section>
+      {day && <><BillSummary bill={dayBill(data,day.id)}/><BillEditor key={day.id+":"+dayBill(data,day.id).version} data={data} bill={dayBill(data,day.id)} mutate={mutate} busy={busy} readOnly={readOnly}/><SharedOrderOverview data={data} dayId={day.id}/></>}
     </>
   );
 }

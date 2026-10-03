@@ -1,6 +1,11 @@
 import { Leaf } from "lucide-react";
 import type { Snapshot } from "../../shared/contracts";
+import type { Order } from "../../shared/contracts";
+import type { OrderRequest } from "../lib/order-autosave";
 export type PageProps = {
+  commitOrder?: (request: OrderRequest) => Promise<Order>;
+  connected?: boolean;
+  routeBlocking?: boolean;
   data: Snapshot;
   mutate: (
     kind: string,

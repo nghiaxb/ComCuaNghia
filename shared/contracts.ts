@@ -28,6 +28,7 @@ export const validateOrderInput = (value: unknown) =>
   orderSchema.safeParse(value);
 export type OrderInput = z.infer<typeof orderSchema>;
 export type Member = {
+  order_save_mode?: "autosave" | "manual";
   id: string;
   email: string;
   display_name: string;
@@ -102,7 +103,19 @@ export type Settings = {
   accountName: string;
   chatEnabled: boolean;
 };
+export type OrderActor = {
+  orderId: string;
+  actorId: string | null;
+  actorName: string | null;
+  updatedAt: string;
+  kind: string;
+};
 export type Snapshot = {
+  shared?: {
+    roster: { id: string; display_name: string; active: boolean }[];
+    actors: OrderActor[];
+    bills: BillPreview[];
+  };
   settledWeeks?: string[];
   recipients?: { id: string; display_name: string }[];
   drafts: {
@@ -143,3 +156,21 @@ export const commandSchema = z.object({
   expectedVersion: z.number().int().min(0),
   payload: z.record(z.string(), z.unknown()),
 });
+
+export type BillConfig = {
+  dayId: string;
+  discountKind: "none" | "fixed" | "percent";
+  discountValue: number;
+  fee: number;
+  covered: string[];
+  sponsors: string[];
+  version: number;
+};
+export type BillPreview = BillConfig & {
+  state: "preview" | "settled" | "legacy";
+  original: number;
+  discount: number | null;
+  total: number | null;
+  shares: { memberId: string; amount: number }[];
+  warnings: string[];
+};

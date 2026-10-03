@@ -1,5 +1,15 @@
 import { supabase } from "./supabase";
 import type { Snapshot, Order } from "../../shared/contracts";
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public code: string,
+    public status: number,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
 async function request<T>(path: string, body?: unknown): Promise<T> {
   const { data } = await supabase!.auth.getSession();
   const r = await fetch("/api/" + path, {
@@ -11,7 +21,12 @@ async function request<T>(path: string, body?: unknown): Promise<T> {
     body: body ? JSON.stringify(body) : undefined,
   });
   const result = await r.json();
-  if (!r.ok) throw Error(result.message || "Không thể lưu thay đổi");
+  if (!r.ok)
+    throw new ApiError(
+      result.message || "Không thể lưu thay đổi",
+      result.code ?? "UNKNOWN",
+      r.status,
+    );
   return result;
 }
 export const snapshot = () => request<Snapshot>("snapshot");
@@ -19,9 +34,10 @@ export const command = (
   kind: string,
   payload: Record<string, unknown>,
   version = 0,
+  requestId: string = crypto.randomUUID(),
 ) =>
   request<Record<string, unknown>>("command/" + kind, {
-    requestId: crypto.randomUUID(),
+    requestId,
     expectedVersion: version,
     payload,
   });

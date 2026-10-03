@@ -5,6 +5,9 @@ import { Field, Person } from "./common";
 export default function Settings({ data, mutate, busy, readOnly }: PageProps) {
   const [cfg, setCfg] = useState(data.settings.data);
   const [name, setName] = useState(data.member.display_name);
+  const [saveMode, setSaveMode] = useState(
+    data.member.order_save_mode ?? "autosave",
+  );
   const [hook, setHook] = useState("");
   const [hookName, setHookName] = useState("");
   const admin = data.member.role === "admin";
@@ -33,13 +36,22 @@ export default function Settings({ data, mutate, busy, readOnly }: PageProps) {
             <input value={data.member.email} disabled />
           </Field>
         </div>
+        <Field label="Cách lưu đơn">
+          <select
+            value={saveMode}
+            onChange={(e) => setSaveMode(e.target.value as typeof saveMode)}
+          >
+            <option value="autosave">Tự lưu khi thay đổi</option>
+            <option value="manual">Bấm gửi để lưu</option>
+          </select>
+        </Field>
         <button
           className="secondary"
           disabled={busy || readOnly}
           onClick={() =>
             void mutate(
               "profile.save",
-              { displayName: name },
+              { displayName: name, orderSaveMode: saveMode },
               data.member.version,
             )
           }

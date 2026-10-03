@@ -1,7 +1,13 @@
 import { useEffect, useId, useRef, type ReactNode } from "react";
 
-export default function ConfirmDialog({ children, onClose, busy }: {
+export default function ConfirmDialog({
+  children,
+  onClose,
+  busy,
+  title = "Xác nhận xoá menu",
+}: {
   children: ReactNode;
+  title?: string;
   onClose: () => void;
   busy: boolean;
 }) {
@@ -16,13 +22,21 @@ export default function ConfirmDialog({ children, onClose, busy }: {
     return () => {
       dialog.close();
       document.body.style.overflow = overflow;
-      if (previous instanceof HTMLElement && previous.isConnected) previous.focus();
+      if (previous instanceof HTMLElement && previous.isConnected)
+        previous.focus();
     };
   }, []);
   return (
-    <dialog ref={ref} className="confirm-dialog" aria-labelledby={titleId}
-      onCancel={(event) => { event.preventDefault(); if (!busy) onClose(); }}>
-      <h2 id={titleId}>Xác nhận xoá menu</h2>
+    <dialog
+      ref={ref}
+      className="confirm-dialog"
+      aria-labelledby={titleId}
+      onCancel={(event) => {
+        event.preventDefault();
+        if (!busy) onClose();
+      }}
+    >
+      <h2 id={titleId}>{title}</h2>
       {children}
     </dialog>
   );

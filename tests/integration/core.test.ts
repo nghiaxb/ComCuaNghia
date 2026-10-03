@@ -607,7 +607,7 @@ it("lets employees place, change and cancel proxy orders with reasons until manu
           admin,
         ])
       ).rows.length,
-    ).toBe(0);
+    ).toBeGreaterThan(0);
     expect(
       (
         await db.query<any>("select public.proxy_order($1,$2) o", [
