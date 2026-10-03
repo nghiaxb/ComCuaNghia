@@ -107,7 +107,11 @@ export type Snapshot = {
   drafts: {
     id: string;
     week_start: string;
-    days: { date: string; foods: { name: string; unitPrice: number }[] }[];
+    days: {
+      date: string;
+      sourceVersion?: number;
+      foods: { name: string; unitPrice: number }[];
+    }[];
     version: number;
   }[];
   member: Member;

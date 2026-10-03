@@ -169,3 +169,19 @@ it("understands Vietnamese weekday labels printed on the image", () => {
     "2026-10-09",
   ]);
 });
+
+it("names the withdrawn menu date and reason in the Chat message", () => {
+  const out = formatChat(
+    {
+      eventId: "event",
+      kind: "menu.withdraw",
+      actor: "Nghĩa",
+      date: "2026-10-05",
+      reason: "Menu nhầm",
+    },
+    "https://app.test",
+  );
+  expect(out.text).toContain("Nghĩa · Gỡ menu");
+  expect(out.text).toContain("Ngày: 2026-10-05");
+  expect(out.text).toContain("Lý do: Menu nhầm");
+});

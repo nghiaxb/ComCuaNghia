@@ -647,3 +647,156 @@ it("lets employees place, change and cancel proxy orders with reasons until manu
     ),
   ).rejects.toThrow(/LOCKED/);
 });
+it("withdraws a menu with audit/outbox while preserving orders and rejects stale or locked changes", async () => {
+  await actor(admin);
+  await command("menu.publish", {
+    days: [
+      { date: "2030-04-01", foods: [{ name: "Cơm test", unitPrice: 40000 }] },
+    ],
+    notifyChat: false,
+  });
+  let day = (
+    await db.query<any>("select * from public.days where date='2030-04-01'")
+  ).rows[0];
+  const food = (
+    await db.query<any>(
+      "select * from public.foods where day_id=$1 and active",
+      [day.id],
+    )
+  ).rows[0];
+  await actor(employee);
+  const order = await command("order.save", {
+    dayId: day.id,
+    memberId: employee,
+    items: [{ menuItemId: food.id, quantity: 1, note: "" }],
+  });
+  const payload = { dayId: day.id, reason: "Nhập nhầm menu" };
+  await expect(command("menu.withdraw", payload, day.version)).rejects.toThrow(
+    /FORBIDDEN/,
+  );
+  await actor(admin);
+  await expect(
+    command("menu.withdraw", payload, day.version - 1),
+  ).rejects.toThrow(/CONFLICT/);
+  const destination = await command("destination.save", {
+    name: "Menu withdrawal test",
+    active: true,
+    ciphertext: "dummy-test-ciphertext",
+  });
+  const request = crypto.randomUUID();
+  const result = await command("menu.withdraw", payload, day.version, request);
+  expect(await command("menu.withdraw", payload, day.version, request)).toEqual(
+    result,
+  );
+  expect(
+    (await db.query<any>("select * from public.orders where id=$1", [order.id]))
+      .rows[0].items,
+  ).toEqual(order.items);
+  expect(
+    (
+      await db.query<any>(
+        "select * from public.foods where day_id=$1 and active",
+        [day.id],
+      )
+    ).rows,
+  ).toHaveLength(0);
+  const event = (
+    await db.query<any>(
+      "select * from public.audit_events where kind='menu.withdraw' and entity_id=$1",
+      [day.id],
+    )
+  ).rows;
+  expect(event).toHaveLength(1);
+  expect(event[0].before.foods[0].name).toBe("Cơm test");
+  expect(event[0].after.reason).toBe(payload.reason);
+  expect(result.date).toBe("2030-04-01");
+  const editedDraft = await command("menu.draft.save", {
+    weekStart: "2030-04-01",
+    days: [
+      {
+        date: "2030-04-01",
+        sourceVersion: day.version,
+        foods: [{ name: "Saved stale edit", unitPrice: 40000 }],
+      },
+    ],
+  });
+  expect(editedDraft.days[0].sourceVersion).toBe(day.version);
+  await expect(
+    command("menu.publish", {
+      days: editedDraft.days,
+      expectedDayVersions: { "2030-04-01": editedDraft.days[0].sourceVersion },
+      notifyChat: false,
+    }),
+  ).rejects.toThrow(/CONFLICT/);
+  await expect(
+    command("menu.publish", {
+      days: [
+        {
+          date: "2030-04-01",
+          foods: [{ name: "Stale edit", unitPrice: 40000 }],
+        },
+      ],
+      expectedDayVersions: { "2030-04-01": day.version },
+      notifyChat: false,
+    }),
+  ).rejects.toThrow(/CONFLICT/);
+  const delivery = (
+    await db.query<any>(
+      "select payload from private.deliveries where event_id=$1 and destination_id=$2",
+      [event[0].id, destination.id],
+    )
+  ).rows;
+  expect(delivery).toHaveLength(1);
+  expect(delivery[0].payload.date).toBe("2030-04-01");
+  expect(delivery[0].payload.reason).toBe(payload.reason);
+  await command("menu.publish", {
+    days: [{ date: day.date, foods: [{ name: "Menu mới", unitPrice: 40000 }] }],
+    notifyChat: false,
+  });
+  await expect(command("menu.withdraw", payload, day.version)).rejects.toThrow(
+    /CONFLICT/,
+  );
+  day = (await db.query<any>("select * from public.days where id=$1", [day.id]))
+    .rows[0];
+  await command(
+    "day.lock",
+    { dayId: day.id, locked: true, reason: "Chốt" },
+    day.version,
+  );
+  day = (await db.query<any>("select * from public.days where id=$1", [day.id]))
+    .rows[0];
+  await expect(command("menu.withdraw", payload, day.version)).rejects.toThrow(
+    /LOCKED/,
+  );
+});
+it("deletes saved drafts only for staff with version and audit", async () => {
+  await actor(admin);
+  const draft = await command("menu.draft.save", {
+    weekStart: "2030-04-08",
+    days: [{ date: "2030-04-08", foods: [{ name: "Nháp", unitPrice: 35000 }] }],
+  });
+  await actor(employee);
+  await expect(
+    command("menu.draft.delete", { id: draft.id }, draft.version),
+  ).rejects.toThrow(/FORBIDDEN/);
+  await actor(admin);
+  await expect(
+    command("menu.draft.delete", { id: draft.id }, draft.version + 1),
+  ).rejects.toThrow(/CONFLICT/);
+  await command("menu.draft.delete", { id: draft.id }, draft.version);
+  expect(
+    (
+      await db.query("select id from public.menu_drafts where id=$1", [
+        draft.id,
+      ])
+    ).rows,
+  ).toHaveLength(0);
+  expect(
+    (
+      await db.query<any>(
+        "select * from public.audit_events where kind='menu.draft.delete' and entity_id=$1",
+        [draft.id],
+      )
+    ).rows[0].before.id,
+  ).toBe(draft.id);
+});

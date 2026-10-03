@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import { useState } from "react";
 import ImageUpload from "../../src/features/ImageUpload";
+import Menus from "../../src/features/Menus";
 import Orders from "../../src/features/Orders";
 import { demo } from "../../src/lib/demo";
 import "../../src/app/styles.css";
@@ -9,6 +10,39 @@ function Fixture() {
   const [refresh, setRefresh] = useState(0);
   const [payload, setPayload] = useState("");
   const data = structuredClone(demo);
+  if (new URLSearchParams(location.search).has("menus")) {
+    if (new URLSearchParams(location.search).has("savedMenu"))
+      data.drafts = [
+        {
+          id: "saved",
+          week_start: data.days[0].date,
+          version: 1,
+          days: [
+            {
+              date: data.days[0].date,
+              sourceVersion: 1,
+              foods: [{ name: "Saved menu", unitPrice: 35000 }],
+            },
+          ],
+        },
+      ];
+    data.days = data.days.slice(0, 1);
+    data.days[0].locked = new URLSearchParams(location.search).has("locked");
+    return (
+      <>
+        <Menus
+          data={data}
+          busy={false}
+          readOnly={false}
+          mutate={async (kind, payload, version) => {
+            setPayload(JSON.stringify({ kind, payload, version }));
+            return {};
+          }}
+        />
+        <output aria-label="Lệnh đã gửi">{payload}</output>
+      </>
+    );
+  }
   data.member.role = "employee";
   data.members.push({
     ...data.member,

@@ -3,6 +3,7 @@ export type ChatEvent = {
   actor?: string;
   subject?: string;
   reason?: string;
+  date?: string;
   kind: string;
   afterCutoff?: boolean;
   before?: {
@@ -20,6 +21,7 @@ const labels: Record<string, string> = {
   "order.cancel": "Hủy đơn cơm",
   "day.lock": "Thay đổi khóa ngày",
   "menu.publish": "Thực đơn mới",
+  "menu.withdraw": "Gỡ menu",
   "payment.report": "Báo đã chuyển tiền",
   "payment.confirm": "Xác nhận thanh toán",
   "finance.settle": "Quyết toán tuần",
@@ -41,6 +43,7 @@ export function formatChat(p: ChatEvent, appUrl: string) {
   const lines = [
     `🍱 ${clean(p.actor ?? "Hệ thống")} · ${labels[p.kind] ?? clean(p.kind)}${p.afterCutoff ? " · SAU MỐC DỰ KIẾN" : ""}`,
   ];
+  if (p.date) lines.push(`Ngày: ${clean(p.date)}`);
   if (p.reason) lines.push(`Lý do: ${clean(p.reason)}`);
   if (p.subject) lines.push(`Thành viên: ${clean(p.subject)}`);
   if (p.kind.startsWith("order."))
