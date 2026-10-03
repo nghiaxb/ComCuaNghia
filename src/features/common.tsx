@@ -1,3 +1,4 @@
+import { Label } from "../components/ui/label";
 import { Leaf } from "lucide-react";
 import type { Snapshot } from "../../shared/contracts";
 import type { Order } from "../../shared/contracts";
@@ -50,9 +51,9 @@ export function Field({
   children: React.ReactNode;
 }) {
   return (
-    <label className="field">
+    <Label className="field items-stretch">
       <span>{label}</span>
       {children}
-    </label>
+    </Label>
   );
 }

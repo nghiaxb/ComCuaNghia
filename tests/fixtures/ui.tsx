@@ -1,7 +1,7 @@
 import { createRoot } from "react-dom/client";
 import { useState } from "react";
-import Button from "../../src/components/ui/Button";
-import Dialog from "../../src/components/ui/Dialog";
+import Button from "../../src/components/ui/ActionButton";
+import Dialog from "../../src/components/ui/Modal";
 import "../../src/app/styles.css";
 function Fixture() {
   const [submits, setSubmits] = useState(0),

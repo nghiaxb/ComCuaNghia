@@ -8,7 +8,9 @@ function Fixture() {
   const [data, setData] = useState(() => {
     const d = structuredClone(demo);
     d.member.role = "employee";
-    d.member.can_manage_finance = false;
+    d.member.can_manage_finance = new URLSearchParams(location.search).has(
+      "finance",
+    );
     d.days = [{ id: "day", date: "2026-10-05", locked: false, version: 1 }];
     d.orders = [
       {
@@ -69,8 +71,10 @@ function Fixture() {
     });
     return d;
   });
+  const [submittedVersion, setSubmittedVersion] = useState<number>();
   return (
     <MemoryRouter>
+      <output aria-label="Phiên bản bill gửi">{submittedVersion}</output>
       <button
         onClick={() =>
           setData((d) => ({
@@ -84,6 +88,8 @@ function Fixture() {
               ...d.shared!,
               bills: d.shared!.bills.map((b) => ({
                 ...b,
+                version: b.version + 1,
+                fee: 9000,
                 original: 105000,
                 discount: 10500,
                 total: 95500,
@@ -99,7 +105,10 @@ function Fixture() {
         data={data}
         busy={false}
         readOnly={false}
-        mutate={async () => ({})}
+        mutate={async (_kind, _payload, version) => {
+          setSubmittedVersion(version);
+          return {};
+        }}
       />
     </MemoryRouter>
   );

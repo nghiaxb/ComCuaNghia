@@ -1,5 +1,5 @@
 import type { ComponentProps } from "react";
-import Dialog from "../components/ui/Dialog";
+import Dialog from "../components/ui/Modal";
 export default function ConfirmDialog({
   title = "Xác nhận xoá menu",
   ...props

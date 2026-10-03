@@ -1,4 +1,5 @@
-import Button from "../components/ui/Button";
+import { Input } from "../components/ui/input";
+import Button from "../components/ui/ActionButton";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ScanLine, Upload } from "lucide-react";
 
@@ -131,7 +132,7 @@ export default function ImageUpload({
           <Upload size={16} />
           Chọn ảnh menu
         </span>
-        <input
+        <Input
           aria-label="Chọn ảnh menu"
           hidden
           type="file"

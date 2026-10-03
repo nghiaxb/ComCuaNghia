@@ -4,7 +4,10 @@ test("honest setup screen on desktop and mobile", async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/order");
     await expect(page.getByText("Kết nối hệ thống")).toBeVisible();
+    if (width < 768)
+      await page.getByRole("button", { name: "Mở điều hướng" }).click();
     await expect(page.getByRole("link", { name: "Cài đặt" })).toBeVisible();
+    if (width < 768) await page.keyboard.press("Escape");
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
@@ -29,6 +32,8 @@ test("all six preview screens render without overflow on mobile and desktop", as
       "Nhật ký",
       "Cài đặt",
     ]) {
+      if (width < 768)
+        await page.getByRole("button", { name: "Mở điều hướng" }).click();
       await page.getByRole("link", { name, exact: true }).click();
       await expect(page.locator("main h1")).toBeVisible();
       expect(
@@ -37,6 +42,8 @@ test("all six preview screens render without overflow on mobile and desktop", as
         ),
       ).toBe(true);
     }
+    if (width < 768)
+      await page.getByRole("button", { name: "Mở điều hướng" }).click();
     await page.getByRole("link", { name: "Đặt cơm", exact: true }).click();
     await page
       .getByRole("button", { name: "Tuần hiện tại", exact: true })

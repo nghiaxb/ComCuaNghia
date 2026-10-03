@@ -26,3 +26,11 @@ test("shared dialog restores focus and prevents Escape during processing", async
   await expect(dialog).not.toBeVisible();
   await expect(trigger).toBeFocused();
 });
+test("mobile primary controls provide 44px touch targets", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/tests/fixtures/ui.html");
+  const box = await page
+    .getByRole("button", { name: "Thao tác", exact: true })
+    .boundingBox();
+  expect(box!.height).toBeGreaterThanOrEqual(44);
+});

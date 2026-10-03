@@ -75,14 +75,18 @@ test("clearing orders confirms the entire target week count and cancellation sub
     .getByLabel("Xóa các đơn đã đặt trong tuần này", { exact: true })
     .check();
   await expect(page.getByText(/2 đơn đang hoạt động/)).toBeVisible();
-  page.once("dialog", (dialog) => {
-    expect(dialog.message()).toContain("2 đơn");
-    return dialog.dismiss();
+  await page.getByRole("button", { name: "Công bố menu", exact: true }).click();
+  const confirm = page.getByRole("alertdialog", {
+    name: /Công bố menu và xóa/,
   });
-  await page.getByRole("button", { name: "Công bố menu", exact: true }).click();
+  await expect(confirm).toContainText("2 đơn");
+  await confirm.getByRole("button", { name: "Quay lại", exact: true }).click();
   await expect(page.getByLabel("Lệnh menu")).toHaveText("");
-  page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "Công bố menu", exact: true }).click();
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "Xác nhận", exact: true })
+    .click();
   expect(
     JSON.parse(await page.getByLabel("Lệnh menu").innerText()).payload,
   ).toMatchObject({ weekStart: "2026-09-28", clearExistingOrders: true });

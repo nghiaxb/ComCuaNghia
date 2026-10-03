@@ -54,9 +54,15 @@ parameters may use an underscore prefix. TypeScript is pinned to 6.0.3 within
 the supported range of typescript-eslint. Intentional non-reactive subject/route
 initialization uses React Effect Events so realtime updates cannot reset drafts.
 
-Reuse `src/components/ui/Button.tsx` for native button props and existing visual
-variants (primary, secondary, danger, text). Its default type is `button`; form
-submission requires explicit `type="submit"`. `Dialog.tsx` uses a native modal
-dialog, accessible heading, Escape protection while busy, and focus restoration.
-`ConfirmDialog` retains its menu-specific default title for existing callers.
-No Redux, query cache, or additional UI framework is required at this stage.
+The app uses Tailwind v4 with the Vite plugin and shadcn/ui component source in
+`src/components/ui/` (Radix primitives, official new-york registry). `components.json`
+and the `@/*` alias support additional components. Theme tokens and reusable layout
+styles are in `src/app/styles.css`; there is one visual system across all routes.
+
+Reuse `ActionButton.tsx` for existing semantic variants and native button props. Its
+default type is `button`; submission requires explicit `type="submit"`. `Modal.tsx`
+wraps the shadcn/Radix dialog with busy/Escape protection and focus restoration.
+`ConfirmDialog` retains its menu-specific default title. Destructive confirmations
+and reasons use `useDecision`; mobile navigation/cart use Sheet, and recipient
+search uses Command + Popover. NativeSelect preserves native keyboard behavior.
+No Redux or query cache migration is included.

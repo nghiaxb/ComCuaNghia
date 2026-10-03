@@ -1,3 +1,4 @@
+import { chooseRecipient } from "../helpers/recipient";
 import { test, expect } from "@playwright/test";
 test("OCR accepts drop and clipboard images once and leaves pasted text alone", async ({
   page,
@@ -72,7 +73,7 @@ test("employee edits an existing proxy cart with recipient reason and optimistic
   await page
     .getByRole("button", { name: "Tuần hiện tại", exact: true })
     .click();
-  await page.getByLabel("Đặt cơm cho").selectOption("colleague");
+  await chooseRecipient(page, "colleague");
   await expect(page.getByLabel("Ghi chú món")).toHaveValue("Ít cơm");
   await expect(
     page.getByRole("button", { name: "Lưu thay đổi" }),
@@ -90,7 +91,7 @@ test("employee edits an existing proxy cart with recipient reason and optimistic
       items: [{ quantity: 3, note: "Ít cơm" }],
     },
   });
-  await page.getByLabel("Đặt cơm cho").selectOption("demo-member");
+  await chooseRecipient(page, "demo-member");
   await expect(page.getByLabel("Ghi chú món")).toHaveCount(0);
 });
 test("manual day lock disables proxy cart", async ({ page }) => {
@@ -98,7 +99,7 @@ test("manual day lock disables proxy cart", async ({ page }) => {
   await page
     .getByRole("button", { name: "Tuần hiện tại", exact: true })
     .click();
-  await page.getByLabel("Đặt cơm cho").selectOption("colleague");
+  await chooseRecipient(page, "colleague");
   await expect(
     page.getByRole("button", { name: "Lưu thay đổi" }),
   ).toBeDisabled();
@@ -112,7 +113,7 @@ test("snapshot refresh preserves unsaved proxy edits", async ({ page }) => {
   await page
     .getByRole("button", { name: "Tuần hiện tại", exact: true })
     .click();
-  await page.getByLabel("Đặt cơm cho").selectOption("colleague");
+  await chooseRecipient(page, "colleague");
   await expect(page.getByLabel("Ghi chú món")).toHaveValue("Ít cơm");
   await page.getByLabel("Ghi chú món").fill("Thêm rau");
   await page.getByRole("button", { name: "Tăng", exact: true }).click();

@@ -1,3 +1,4 @@
+import { Card } from "../components/ui/card";
 import type { BillPreview, Snapshot } from "../../shared/contracts";
 import { vnd } from "./common";
 export function dayBill(data: Snapshot, dayId: string): BillPreview {
@@ -27,7 +28,11 @@ export function dayBill(data: Snapshot, dayId: string): BillPreview {
 }
 export default function BillSummary({ bill }: { bill: BillPreview }) {
   return (
-    <section className="panel bill-summary" aria-label="Bill trong ngày">
+    <Card
+      role="region"
+      className="panel bill-summary"
+      aria-label="Bill trong ngày"
+    >
       <div className="section-title">
         <h2>Bill trong ngày</h2>
         <span>
@@ -66,6 +71,6 @@ export default function BillSummary({ bill }: { bill: BillPreview }) {
           {w}
         </p>
       ))}
-    </section>
+    </Card>
   );
 }

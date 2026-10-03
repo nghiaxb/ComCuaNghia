@@ -1,3 +1,5 @@
+import { NativeSelect } from "../components/ui/native-select";
+import Button from "../components/ui/ActionButton";
 import { addDays, vietnamDate, weekLabel, weekStart } from "../../shared/time";
 import { Field } from "./common";
 
@@ -32,15 +34,15 @@ export default function WeekPicker({
   return (
     <div className="week-picker">
       <div className="form-row">
-        <button
+        <Button
           className="secondary"
           disabled={disabled}
           onClick={() => onChange(addDays(selected, -7))}
         >
           Tuần trước
-        </button>
+        </Button>
         <Field label={label}>
-          <select
+          <NativeSelect
             aria-label={label}
             value={selected}
             disabled={disabled}
@@ -51,22 +53,22 @@ export default function WeekPicker({
                 {weekLabel(week)}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </Field>
-        <button
+        <Button
           className="secondary"
           disabled={disabled}
           onClick={() => onChange(current)}
         >
           Tuần hiện tại
-        </button>
-        <button
+        </Button>
+        <Button
           className="secondary"
           disabled={disabled}
           onClick={() => onChange(addDays(selected, 7))}
         >
           Tuần kế tiếp
-        </button>
+        </Button>
       </div>
       <p className="muted" aria-live="polite">
         {weekLabel(selected)}

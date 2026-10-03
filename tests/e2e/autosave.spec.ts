@@ -1,3 +1,4 @@
+import { chooseRecipient } from "../helpers/recipient";
 import { test, expect } from "@playwright/test";
 test.beforeEach(async ({ page }) => {
   await page.clock.install({ time: new Date("2026-10-05T03:00:00Z") });
@@ -37,7 +38,7 @@ test("proxy requires reason and uses actor mode; protected screens never submit"
   page,
 }) => {
   await page.goto("/tests/fixtures/autosave.html");
-  await page.getByLabel("Đặt cơm cho").selectOption("friend");
+  await chooseRecipient(page, "friend");
   await add(page);
   await page.clock.runFor(1000);
   await expect(page.getByLabel("Số lần ghi")).toHaveText("0");
@@ -72,6 +73,10 @@ test("navigation guards dirty cart, external update preserves draft, retry prese
     "1",
   );
   await page.getByRole("button", { name: "Tải đơn mới nhất" }).click();
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "Xác nhận", exact: true })
+    .click();
   await expect(page.getByRole("list").getByRole("status").first()).toHaveText(
     "4",
   );
@@ -98,7 +103,7 @@ test("recipient changes wait for in-flight acknowledgement and discard never sen
   await page.goto("/tests/fixtures/autosave.html?slow");
   await add(page);
   await page.clock.runFor(700);
-  await page.getByLabel("Đặt cơm cho").selectOption("friend");
+  await chooseRecipient(page, "friend");
   const dialog = page.getByRole("dialog", { name: "Bản nháp chưa lưu" });
   await expect(dialog).toBeVisible();
   await expect(
@@ -107,7 +112,9 @@ test("recipient changes wait for in-flight acknowledgement and discard never sen
   await page.clock.runFor(1500);
   await expect(page.getByLabel("Số lần ghi")).toHaveText("1");
   await dialog.getByRole("button", { name: "Bỏ bản nháp và chuyển" }).click();
-  await expect(page.getByLabel("Đặt cơm cho")).toHaveValue("friend");
+  await expect(
+    page.getByRole("combobox", { name: "Đặt cơm cho" }),
+  ).toContainText("Lan");
   await page.clock.runFor(2000);
   await expect(page.getByLabel("Số lần ghi")).toHaveText("1");
   await expect(page.getByRole("list").getByRole("status").first()).toHaveText(
@@ -123,6 +130,10 @@ test("queued autosave cancellation removes pending edits; enabling autosave conf
   await expect(page.getByLabel("Số lần ghi")).toHaveText("1");
   await add(page);
   await page.getByRole("button", { name: "Hủy đơn", exact: true }).click();
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "Xác nhận", exact: true })
+    .click();
   await expect(page.getByLabel("Số lần ghi")).toHaveText("2");
   await expect(page.getByLabel("Yêu cầu")).toContainText("order.cancel");
   await page.clock.runFor(1000);
@@ -130,6 +141,10 @@ test("queued autosave cancellation removes pending edits; enabling autosave conf
   await page.goto("/tests/fixtures/autosave.html?manual");
   await add(page);
   await page.getByLabel("Cách lưu đơn").selectOption("autosave");
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "Xác nhận", exact: true })
+    .click();
   await page.clock.runFor(700);
   await expect(page.getByLabel("Số lần ghi")).toHaveText("1");
 });

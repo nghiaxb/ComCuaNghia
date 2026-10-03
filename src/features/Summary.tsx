@@ -1,4 +1,14 @@
-import Button from "../components/ui/Button";
+import { useDecision } from "./useDecision";
+import { NativeSelect } from "../components/ui/native-select";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "../components/ui/table";
+import Button from "../components/ui/ActionButton";
 import SharedOrderOverview from "./SharedOrderOverview";
 import BillSummary, { dayBill } from "./BillSummary";
 import BillEditor from "./BillEditor";
@@ -17,6 +27,7 @@ export default function Summary({ data, mutate, busy, readOnly }: PageProps) {
   const dayId = days.some((d) => d.id === selectedDay)
     ? selectedDay
     : (days[0]?.id ?? "");
+  const { prompt, dialog } = useDecision(dayId);
   const settled = data.settledWeeks?.includes(week) ?? false;
   const day = data.days.find((d) => d.id === dayId);
   const orders = data.orders.filter(
@@ -52,13 +63,14 @@ export default function Summary({ data, mutate, busy, readOnly }: PageProps) {
   const staff = data.member.role !== "employee";
   return (
     <>
+      {dialog}
       <div className="page-title">
         <div>
           <p className="eyebrow">ĐIỀU PHỐI BỮA TRƯA</p>
           <h1>Tổng hợp đơn</h1>
           <p>Đủ món, đúng người, không bỏ sót ghi chú.</p>
         </div>
-        <select
+        <NativeSelect
           aria-label="Ngày tổng hợp"
           value={dayId}
           onChange={(e) => setDay(e.target.value)}
@@ -68,7 +80,7 @@ export default function Summary({ data, mutate, busy, readOnly }: PageProps) {
               {d.date}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </div>
       <WeekPicker
         value={week}
@@ -145,26 +157,26 @@ export default function Summary({ data, mutate, busy, readOnly }: PageProps) {
           <Empty />
         ) : (
           <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Món ăn</th>
-                  <th>Ghi chú</th>
-                  <th>Số suất</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Món ăn</TableHead>
+                  <TableHead>Ghi chú</TableHead>
+                  <TableHead>Số suất</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {[...groups.values()].map((i, n) => (
-                  <tr key={n}>
-                    <td>{i.name}</td>
-                    <td>{i.note || "Bình thường"}</td>
-                    <td>
+                  <TableRow key={n}>
+                    <TableCell>{i.name}</TableCell>
+                    <TableCell>{i.note || "Bình thường"}</TableCell>
+                    <TableCell>
                       <b>{i.quantity}</b>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
         {staff && (
@@ -172,15 +184,17 @@ export default function Summary({ data, mutate, busy, readOnly }: PageProps) {
             className={day?.locked ? "secondary" : "primary"}
             disabled={!day || busy || readOnly || settled}
             onClick={() => {
-              const reason = prompt(
-                day?.locked ? "Lý do mở khóa" : "Lý do khóa ngày",
-              );
-              if (reason)
-                void mutate(
-                  "day.lock",
-                  { dayId, locked: !day?.locked, reason },
-                  day!.version,
+              void (async () => {
+                await prompt(
+                  day?.locked ? "Lý do mở khóa" : "Lý do khóa ngày",
+                  (reason) =>
+                    mutate(
+                      "day.lock",
+                      { dayId, locked: !day?.locked, reason },
+                      day!.version,
+                    ),
                 );
+              })();
             }}
           >
             {day?.locked ? "Mở khóa ngày" : "Khóa ngày đặt cơm"}
@@ -191,7 +205,7 @@ export default function Summary({ data, mutate, busy, readOnly }: PageProps) {
         <>
           <BillSummary bill={dayBill(data, day.id)} />
           <BillEditor
-            key={day.id + ":" + dayBill(data, day.id).version}
+            key={day.id}
             data={data}
             bill={dayBill(data, day.id)}
             mutate={mutate}

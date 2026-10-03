@@ -1,4 +1,16 @@
-import Button from "../components/ui/Button";
+import { useDecision } from "./useDecision";
+import { NativeSelect } from "../components/ui/native-select";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "../components/ui/tabs";
+import { Input } from "../components/ui/input";
+import RecipientPicker from "./RecipientPicker";
+import SaveStatus from "./SaveStatus";
+import { Sheet, SheetContent, SheetTitle } from "../components/ui/sheet";
+import Button from "../components/ui/ActionButton";
 import { useOrderDraft } from "./useOrderDraft";
 import ConfirmDialog from "./ConfirmDialog";
 import { useLocation } from "react-router-dom";
@@ -6,7 +18,7 @@ import SharedOrderOverview from "./SharedOrderOverview";
 import BillSummary, { dayBill } from "./BillSummary";
 import { proxyOrder } from "../lib/api";
 import type { Order } from "../../shared/contracts";
-import { useEffect, useEffectEvent, useState } from "react";
+import { useEffect, useEffectEvent, useState, useRef } from "react";
 import { ShoppingBag, Plus, Minus, LockKeyhole, Clock3 } from "lucide-react";
 import type { PageProps } from "./common";
 import { Empty, vnd, Field } from "./common";
@@ -21,6 +33,16 @@ export default function Orders({
   routeBlocking = false,
   loadRecipientOrder = proxyOrder,
 }: PageProps & { loadRecipientOrder?: typeof proxyOrder }) {
+  const [mobile, setMobile] = useState(
+    () => matchMedia("(max-width: 767px)").matches,
+  );
+  const [cartOpen, setCartOpen] = useState(false);
+  useEffect(() => {
+    const q = matchMedia("(max-width: 767px)");
+    const change = () => setMobile(q.matches);
+    q.addEventListener("change", change);
+    return () => q.removeEventListener("change", change);
+  }, []);
   const initialQuery = new URLSearchParams(location.search);
   const initialDate = initialQuery.get("date");
   const [week, setWeek] = useState(
@@ -39,6 +61,8 @@ export default function Orders({
   const [memberId, setMemberId] = useState(
     initialQuery.get("member") ?? data.member.id,
   );
+  const { confirm, dialog } = useDecision(`${date}:${memberId}`);
+  const cartTrigger = useRef<HTMLButtonElement | null>(null);
   const [reason, setReason] = useState("");
   const proxy = memberId !== data.member.id;
   const recipients = data.recipients ?? data.members.filter((m) => m.active);
@@ -233,13 +257,207 @@ export default function Orders({
       : currentOrder
         ? "Lưu thay đổi"
         : "Đặt bữa trưa";
+  const cartContent = (
+    <>
+      <h2>
+        <ShoppingBag size={20} />{" "}
+        {proxy ? "Đặt cơm hộ đồng nghiệp" : "Bữa trưa của bạn"}
+      </h2>
+      <p className="muted">
+        {date} · {recipient?.display_name ?? data.member.display_name}
+      </p>
+      {recipientLoading && <p role="status">Đang tải đơn người nhận…</p>}
+      {recipientError && (
+        <p className="error" role="alert">
+          {recipientError}
+        </p>
+      )}
+      {order && order.status !== "active" && (
+        <section aria-label="Đơn đã hủy">
+          <h3>Đơn đã hủy</h3>
+          {order.items.map((item) => (
+            <p key={item.menuItemId}>
+              {item.name} ×{item.quantity} · {vnd(item.unitPrice)} / suất
+              {item.note ? ` · ${item.note}` : ""}
+            </p>
+          ))}
+          <strong>
+            {vnd(
+              order.items.reduce(
+                (sum, item) => sum + item.quantity * item.unitPrice,
+                0,
+              ),
+            )}
+          </strong>
+        </section>
+      )}
+      {!cart.length ? (
+        <div className="cart-empty">Chọn một món ngon để bắt đầu nhé.</div>
+      ) : (
+        cart.map((i) => (
+          <div className="cart-item" key={i.menuItemId}>
+            <strong>
+              {orderedItems.find((f) => f.menuItemId === i.menuItemId)?.name ??
+                foods.find((f) => f.id === i.menuItemId)?.name}
+            </strong>
+            <small>
+              {vnd(
+                orderedItems.find((f) => f.menuItemId === i.menuItemId)
+                  ?.unitPrice ??
+                  foods.find((f) => f.id === i.menuItemId)?.unit_price ??
+                  0,
+              )}{" "}
+              / suất
+              {!foods.some((f) => f.id === i.menuItemId)
+                ? " · Món đã đặt, không còn trong menu"
+                : ""}
+            </small>
+            <div className="quantity">
+              <Button
+                aria-label="Giảm"
+                disabled={blocked}
+                onClick={() =>
+                  setCart((old) =>
+                    old
+                      .map((x) =>
+                        x.menuItemId === i.menuItemId
+                          ? { ...x, quantity: x.quantity - 1 }
+                          : x,
+                      )
+                      .filter((x) => x.quantity > 0),
+                  )
+                }
+              >
+                <Minus size={13} />
+              </Button>
+              <span>{i.quantity}</span>
+              <Button
+                aria-label="Tăng"
+                disabled={blocked}
+                onClick={() => add(i.menuItemId)}
+              >
+                <Plus size={13} />
+              </Button>
+            </div>
+            <Input
+              aria-label="Ghi chú món"
+              placeholder="Ít cơm, không cay…"
+              maxLength={500}
+              value={i.note}
+              disabled={blocked}
+              onChange={(e) =>
+                setCart((old) =>
+                  old.map((x) =>
+                    x.menuItemId === i.menuItemId
+                      ? { ...x, note: e.target.value }
+                      : x,
+                  ),
+                )
+              }
+            />
+          </div>
+        ))
+      )}
+      <Field label="Cách lưu đơn">
+        <NativeSelect
+          value={automatic ? "autosave" : "manual"}
+          disabled={
+            busy ||
+            readOnly ||
+            saveStatus === "saving" ||
+            saveStatus === "uncertain"
+          }
+          onChange={(e) => {
+            const mode = e.target.value;
+            void (async () => {
+              const saveMode = () => {
+                if (mode === "autosave") draft.allowAutomatic();
+                return mutate(
+                  "profile.save",
+                  {
+                    displayName: data.member.display_name,
+                    orderSaveMode: mode,
+                  },
+                  data.member.version,
+                );
+              };
+              if (mode === "autosave" && draft.state.dirty)
+                await confirm("Bật tự lưu và gửi bản nháp hiện tại?", saveMode);
+              else await saveMode();
+            })();
+          }}
+        >
+          <option value="autosave">Tự lưu</option>
+          <option value="manual">Bấm gửi</option>
+        </NativeSelect>
+      </Field>
+      <p
+        role="status"
+        aria-label="Trạng thái lưu đơn"
+        className={
+          ["conflict", "error", "locked", "uncertain"].includes(saveStatus)
+            ? "error"
+            : "fine"
+        }
+      >
+        {statusText}
+      </p>
+      {saveStatus === "uncertain" && (
+        <Button className="secondary" onClick={() => void draft.retry()}>
+          Thử lưu lại
+        </Button>
+      )}
+      {["conflict", "locked", "error"].includes(saveStatus) && (
+        <Button
+          className="secondary"
+          onClick={() => {
+            void confirm("Bỏ bản nháp và tải đơn mới nhất?", () =>
+              draft.discard(),
+            );
+          }}
+        >
+          Tải đơn mới nhất
+        </Button>
+      )}
+      <div className="cart-total">
+        <span>Tạm tính</span>
+        <strong>{vnd(total)}</strong>
+      </div>
+      <Button
+        className="primary wide"
+        disabled={saveBlocked}
+        onClick={saveOrder}
+      >
+        {cta}
+      </Button>
+      {currentOrder?.status === "active" && (
+        <Button
+          className="text-button wide"
+          disabled={
+            blocked ||
+            (proxy && !reason.trim()) ||
+            ["saving", "uncertain", "conflict"].includes(saveStatus)
+          }
+          onClick={() => {
+            void confirm("Hủy đơn cơm ngày này?", () => draft.cancel());
+          }}
+        >
+          Hủy đơn
+        </Button>
+      )}
+      <p className="fine">
+        Sau mốc dự kiến vẫn được sửa đơn cho đến khi ngày đặt cơm được khóa.
+      </p>
+    </>
+  );
   return (
     <div className="orders-page">
+      {dialog}
       <div className="page-title">
         <div>
           <p className="eyebrow">MỖI NGÀY, MỘT BỮA NGON</p>
-          <h1>Hôm nay ăn gì?</h1>
-          <p>Chọn món bạn thích. Phần còn lại để Nghĩa lo.</p>
+          <h1>Đặt cơm</h1>
+          <p>Chọn món, kiểm tra đơn và đặt hộ đồng nghiệp.</p>
         </div>
         <span className="tag">
           <Clock3 size={15} /> Mốc dự kiến {data.settings.data.cutoffTime} hôm
@@ -256,6 +474,8 @@ export default function Orders({
         {days.map((d) => (
           <Button
             key={d.id}
+            variant={date === d.date ? "primary" : "secondary"}
+            aria-pressed={date === d.date}
             className={date === d.date ? "selected" : ""}
             onClick={() => draft.guard(() => setDate(d.date))}
           >
@@ -272,7 +492,7 @@ export default function Orders({
         ))}
         {!days.length && (
           <Field label="Ngày ăn">
-            <input
+            <Input
               type="date"
               value={date}
               onChange={(e) => {
@@ -283,6 +503,36 @@ export default function Orders({
           </Field>
         )}
       </div>
+      <section className="recipient-toolbar mb-5 grid gap-4 rounded-xl border bg-background p-4 md:grid-cols-2">
+        <RecipientPicker
+          value={memberId}
+          recipients={recipients}
+          disabled={busy || readOnly}
+          onChange={(value) =>
+            draft.guard(() => {
+              setMemberId(value);
+              setReason("");
+            })
+          }
+        />
+        {proxy && (
+          <>
+            <Field label="Lý do đặt hoặc chỉnh hộ">
+              <Input
+                value={reason}
+                maxLength={500}
+                disabled={blocked}
+                placeholder="Đồng nghiệp nhờ đặt…"
+                onChange={(e) => setReason(e.target.value)}
+              />
+            </Field>
+            <p className="fine">
+              Ghi nhận bạn là người thao tác, {recipient?.display_name} là người
+              nhận cơm. Đơn hiện có sẽ được tải để bạn chỉnh.
+            </p>
+          </>
+        )}
+      </section>
       <div className="order-grid">
         <section>
           <div className="section-title">
@@ -347,238 +597,46 @@ export default function Orders({
             </ul>
           )}
         </section>
-        <aside className="cart" id="order-cart">
-          <h2>
-            <ShoppingBag size={20} />{" "}
-            {proxy ? "Đặt cơm hộ đồng nghiệp" : "Bữa trưa của bạn"}
-          </h2>
-          <p className="muted">
-            {date} · {recipient?.display_name ?? data.member.display_name}
-          </p>
-          <Field label="Đặt cơm cho">
-            <select
-              value={memberId}
-              disabled={busy || readOnly}
-              onChange={(e) => {
-                const value = e.target.value;
-                draft.guard(() => {
-                  setMemberId(value);
-                  setReason("");
-                });
+        {!mobile && (
+          <aside className="cart" id="order-cart">
+            {cartContent}
+          </aside>
+        )}
+        {mobile && (
+          <Sheet open={cartOpen} onOpenChange={setCartOpen}>
+            <SheetContent
+              onCloseAutoFocus={(event) => {
+                event.preventDefault();
+                cartTrigger.current?.focus();
               }}
+              side="bottom"
+              className="max-h-[90dvh] overflow-y-auto rounded-t-xl p-5"
             >
-              {recipients.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.display_name}
-                  {m.id === data.member.id ? " (tôi)" : ""}
-                </option>
-              ))}
-            </select>
-          </Field>
-          {proxy && (
-            <>
-              <Field label="Lý do đặt hoặc chỉnh hộ">
-                <input
-                  value={reason}
-                  maxLength={500}
-                  disabled={blocked}
-                  placeholder="Đồng nghiệp nhờ đặt…"
-                  onChange={(e) => setReason(e.target.value)}
-                />
-              </Field>
-              <p className="fine">
-                Ghi nhận bạn là người thao tác, {recipient?.display_name} là
-                người nhận cơm. Đơn hiện có sẽ được tải để bạn chỉnh.
-              </p>
-            </>
-          )}
-          {recipientLoading && <p role="status">Đang tải đơn người nhận…</p>}
-          {recipientError && (
-            <p className="error" role="alert">
-              {recipientError}
-            </p>
-          )}
-          {order && order.status !== "active" && (
-            <section aria-label="Đơn đã hủy">
-              <h3>Đơn đã hủy</h3>
-              {order.items.map((item) => (
-                <p key={item.menuItemId}>
-                  {item.name} ×{item.quantity} · {vnd(item.unitPrice)} / suất
-                  {item.note ? ` · ${item.note}` : ""}
-                </p>
-              ))}
-              <strong>
-                {vnd(
-                  order.items.reduce(
-                    (sum, item) => sum + item.quantity * item.unitPrice,
-                    0,
-                  ),
-                )}
-              </strong>
-            </section>
-          )}
-          {!cart.length ? (
-            <div className="cart-empty">Chọn một món ngon để bắt đầu nhé.</div>
-          ) : (
-            cart.map((i) => (
-              <div className="cart-item" key={i.menuItemId}>
-                <strong>
-                  {orderedItems.find((f) => f.menuItemId === i.menuItemId)
-                    ?.name ?? foods.find((f) => f.id === i.menuItemId)?.name}
-                </strong>
-                <small>
-                  {vnd(
-                    orderedItems.find((f) => f.menuItemId === i.menuItemId)
-                      ?.unitPrice ??
-                      foods.find((f) => f.id === i.menuItemId)?.unit_price ??
-                      0,
-                  )}{" "}
-                  / suất
-                  {!foods.some((f) => f.id === i.menuItemId)
-                    ? " · Món đã đặt, không còn trong menu"
-                    : ""}
-                </small>
-                <div className="quantity">
-                  <Button
-                    aria-label="Giảm"
-                    disabled={blocked}
-                    onClick={() =>
-                      setCart((old) =>
-                        old
-                          .map((x) =>
-                            x.menuItemId === i.menuItemId
-                              ? { ...x, quantity: x.quantity - 1 }
-                              : x,
-                          )
-                          .filter((x) => x.quantity > 0),
-                      )
-                    }
-                  >
-                    <Minus size={13} />
-                  </Button>
-                  <span>{i.quantity}</span>
-                  <Button
-                    aria-label="Tăng"
-                    disabled={blocked}
-                    onClick={() => add(i.menuItemId)}
-                  >
-                    <Plus size={13} />
-                  </Button>
-                </div>
-                <input
-                  aria-label="Ghi chú món"
-                  placeholder="Ít cơm, không cay…"
-                  maxLength={500}
-                  value={i.note}
-                  disabled={blocked}
-                  onChange={(e) =>
-                    setCart((old) =>
-                      old.map((x) =>
-                        x.menuItemId === i.menuItemId
-                          ? { ...x, note: e.target.value }
-                          : x,
-                      ),
-                    )
-                  }
-                />
-              </div>
-            ))
-          )}
-          <Field label="Cách lưu đơn">
-            <select
-              value={automatic ? "autosave" : "manual"}
-              disabled={
-                busy ||
-                readOnly ||
-                saveStatus === "saving" ||
-                saveStatus === "uncertain"
-              }
-              onChange={(e) => {
-                const mode = e.target.value;
-                if (
-                  mode === "autosave" &&
-                  draft.state.dirty &&
-                  !confirm("Bật tự lưu và gửi bản nháp hiện tại?")
-                )
-                  return;
-                if (mode === "autosave") draft.allowAutomatic();
-                void mutate(
-                  "profile.save",
-                  {
-                    displayName: data.member.display_name,
-                    orderSaveMode: mode,
-                  },
-                  data.member.version,
-                );
-              }}
-            >
-              <option value="autosave">Tự lưu</option>
-              <option value="manual">Bấm gửi</option>
-            </select>
-          </Field>
-          <p
-            role="status"
-            aria-label="Trạng thái lưu đơn"
-            className={
-              ["conflict", "error", "locked", "uncertain"].includes(saveStatus)
-                ? "error"
-                : "fine"
-            }
-          >
-            {statusText}
-          </p>
-          {saveStatus === "uncertain" && (
-            <Button className="secondary" onClick={() => void draft.retry()}>
-              Thử lưu lại
-            </Button>
-          )}
-          {["conflict", "locked", "error"].includes(saveStatus) && (
-            <Button
-              className="secondary"
-              onClick={() => {
-                if (confirm("Bỏ bản nháp và tải đơn mới nhất?"))
-                  draft.discard();
-              }}
-            >
-              Tải đơn mới nhất
-            </Button>
-          )}
-          <div className="cart-total">
-            <span>Tạm tính</span>
-            <strong>{vnd(total)}</strong>
-          </div>
-          <Button
-            className="primary wide"
-            disabled={saveBlocked}
-            onClick={saveOrder}
-          >
-            {cta}
-          </Button>
-          {currentOrder?.status === "active" && (
-            <Button
-              className="text-button wide"
-              disabled={
-                blocked ||
-                (proxy && !reason.trim()) ||
-                ["saving", "uncertain", "conflict"].includes(saveStatus)
-              }
-              onClick={() => {
-                if (confirm("Hủy đơn cơm ngày này?")) void draft.cancel();
-              }}
-            >
-              Hủy đơn
-            </Button>
-          )}
-          <p className="fine">
-            Sau mốc dự kiến vẫn được sửa đơn cho đến khi ngày đặt cơm được khóa.
-          </p>
-        </aside>
+              <SheetTitle>Chi tiết đơn cơm</SheetTitle>
+              <aside className="cart border-0 shadow-none p-0" id="order-cart">
+                {cartContent}
+              </aside>
+            </SheetContent>
+          </Sheet>
+        )}
       </div>
       {day && (
-        <>
-          <BillSummary bill={dayBill(data, day.id)} />
-          <SharedOrderOverview data={data} dayId={day.id} compact />
-        </>
+        <Tabs defaultValue="people" className="mt-6">
+          <TabsList className="mb-3 min-h-11">
+            <TabsTrigger value="people" className="min-h-11">
+              Đơn mọi người
+            </TabsTrigger>
+            <TabsTrigger value="bill" className="min-h-11">
+              Bill & chia tiền
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="people">
+            <SharedOrderOverview data={data} dayId={day.id} compact />
+          </TabsContent>
+          <TabsContent value="bill">
+            <BillSummary bill={dayBill(data, day.id)} />
+          </TabsContent>
+        </Tabs>
       )}
       {draft.modeConsent && (
         <ConfirmDialog
@@ -639,13 +697,19 @@ export default function Orders({
         </ConfirmDialog>
       )}
       <section className="mobile-order-bar" aria-label="Thao tác đơn cơm">
+        <div className="col-span-2">
+          <SaveStatus
+            text={statusText}
+            status={saveStatus}
+            dirty={draft.state.dirty}
+            onRetry={() => void draft.retry()}
+            retryDisabled={blocked}
+          />
+        </div>
         <Button
           className="text-button"
-          onClick={() =>
-            document
-              .getElementById("order-cart")
-              ?.scrollIntoView({ behavior: "smooth", block: "start" })
-          }
+          ref={cartTrigger}
+          onClick={() => setCartOpen(true)}
         >
           <ShoppingBag size={18} />
           <span>

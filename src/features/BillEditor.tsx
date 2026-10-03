@@ -1,4 +1,8 @@
-import Button from "../components/ui/Button";
+import { Checkbox } from "../components/ui/checkbox";
+import { NativeSelect } from "../components/ui/native-select";
+import { Card } from "../components/ui/card";
+import { Input } from "../components/ui/input";
+import Button from "../components/ui/ActionButton";
 import { useState } from "react";
 import type { BillPreview } from "../../shared/contracts";
 import type { PageProps } from "./common";
@@ -10,6 +14,7 @@ export default function BillEditor({
   busy,
   readOnly,
 }: { bill: BillPreview } & PageProps) {
+  const [baseVersion, setBaseVersion] = useState(bill.version);
   const [kind, setKind] = useState(bill.discountKind),
     [discount, setDiscount] = useState(bill.discountValue),
     [fee, setFee] = useState(bill.fee),
@@ -40,20 +45,39 @@ export default function BillEditor({
     !covered.some((id) => sponsors.includes(id)) &&
     (!covered.length || sponsors.length > 0);
   return (
-    <section className="bill-editor" aria-label="Cấu hình bill">
+    <Card role="region" className="bill-editor" aria-label="Cấu hình bill">
+      {bill.version !== baseVersion && (
+        <p role="alert" className="notice">
+          Bill đã được chỉnh ở phiên khác. Bản nháp của bạn được giữ; tải cấu
+          hình mới trước khi lưu.
+          <Button
+            variant="text"
+            onClick={() => {
+              setKind(bill.discountKind);
+              setDiscount(bill.discountValue);
+              setFee(bill.fee);
+              setCovered(bill.covered);
+              setSponsors(bill.sponsors);
+              setBaseVersion(bill.version);
+            }}
+          >
+            Tải cấu hình bill mới
+          </Button>
+        </p>
+      )}
       <div className="form-row">
         <Field label="Loại giảm giá">
-          <select
+          <NativeSelect
             value={kind}
             onChange={(e) => setKind(e.target.value as typeof kind)}
           >
             <option value="none">Không giảm</option>
             <option value="fixed">Số tiền VND</option>
             <option value="percent">Phần trăm</option>
-          </select>
+          </NativeSelect>
         </Field>
         <Field label="Giá trị giảm giá">
-          <input
+          <Input
             type="number"
             min="0"
             max={kind === "percent" ? 100 : undefined}
@@ -63,7 +87,7 @@ export default function BillEditor({
           />
         </Field>
         <Field label="Phí thêm VND">
-          <input
+          <Input
             type="number"
             min="0"
             value={fee}
@@ -79,18 +103,16 @@ export default function BillEditor({
         <div className="order-row" key={m.id}>
           <span>{m.display_name}</span>
           <label>
-            <input
-              type="checkbox"
+            <Checkbox
               checked={covered.includes(m.id)}
-              onChange={() => setCovered(toggle(covered, m.id))}
+              onCheckedChange={() => setCovered(toggle(covered, m.id))}
             />{" "}
             Được bao
           </label>
           <label>
-            <input
-              type="checkbox"
+            <Checkbox
               checked={sponsors.includes(m.id)}
-              onChange={() => setSponsors(toggle(sponsors, m.id))}
+              onCheckedChange={() => setSponsors(toggle(sponsors, m.id))}
             />{" "}
             Trả thay
           </label>
@@ -113,12 +135,15 @@ export default function BillEditor({
               covered,
               sponsors,
             },
-            bill.version,
-          )
+            baseVersion,
+          ).then((result) => {
+            if (result && typeof result.version === "number")
+              setBaseVersion(result.version);
+          })
         }
       >
         Lưu bill
       </Button>
-    </section>
+    </Card>
   );
 }

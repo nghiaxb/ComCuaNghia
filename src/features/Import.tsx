@@ -1,4 +1,5 @@
-import Button from "../components/ui/Button";
+import { Input } from "../components/ui/input";
+import Button from "../components/ui/ActionButton";
 import { useState } from "react";
 import type { PageProps } from "./common";
 type Report = {
@@ -42,13 +43,13 @@ export default function ImportPanel({
         ngày chuyển đổi.
       </p>
       <div className="form-row">
-        <input
+        <Input
           aria-label="Tên thành viên cũ"
           placeholder="Tên thành viên cũ"
           value={legacyName}
           onChange={(e) => setLegacyName(e.target.value)}
         />
-        <input
+        <Input
           aria-label="Email được xác nhận"
           placeholder="Email công ty đã xác nhận (có thể để trống)"
           value={email}
@@ -71,7 +72,7 @@ export default function ImportPanel({
         Không tự đoán email từ tên. Hồ sơ chỉ liên kết đăng nhập khi email công
         ty đã được xác minh khớp chính xác.
       </p>
-      <input
+      <Input
         aria-label="Báo cáo import JSON"
         type="file"
         accept="application/json"
@@ -106,7 +107,7 @@ export default function ImportPanel({
             </p>
           ))}
           <label className="checkbox">
-            <input
+            <Input
               type="checkbox"
               checked={reviewed}
               onChange={(e) => setReviewed(e.target.checked)}

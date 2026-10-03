@@ -1,3 +1,8 @@
+import { Textarea } from "../components/ui/textarea";
+import { useDecision } from "./useDecision";
+import { NativeSelect } from "../components/ui/native-select";
+import Button from "../components/ui/ActionButton";
+import { Input } from "../components/ui/input";
 import BillSummary, { dayBill } from "./BillSummary";
 import BillEditor from "./BillEditor";
 import { useEffect, useState } from "react";
@@ -12,6 +17,7 @@ export default function Finance({ data, mutate, busy, readOnly }: PageProps) {
   const [adjustAmount, setAdjustAmount] = useState(0);
   const [adjustNote, setAdjustNote] = useState("");
   const [week, setWeek] = useState(defaultMenuWeek());
+  const { confirm, prompt, dialog } = useDecision(week);
   const [qr, setQr] = useState("");
   const [amount, setAmount] = useState(0);
   const [ref, setRef] = useState("");
@@ -88,15 +94,16 @@ export default function Finance({ data, mutate, busy, readOnly }: PageProps) {
   }
   return (
     <>
+      {dialog}
       <div className="page-title">
         <div>
           <p className="eyebrow">RÕ RÀNG TỪNG BỮA ĂN</p>
           <h1>Công nợ & thanh toán</h1>
           <p>Khoản phải trả, khoản đã nhận và lịch sử luôn khớp nhau.</p>
         </div>
-        <button className="secondary" onClick={() => void exportCsv()}>
+        <Button className="secondary" onClick={() => void exportCsv()}>
           Xuất CSV
-        </button>
+        </Button>
       </div>
       {csvError && <p className="error">{csvError}</p>}
       <WeekPicker
@@ -157,7 +164,7 @@ export default function Finance({ data, mutate, busy, readOnly }: PageProps) {
         <section className="panel">
           <h2>Báo đã chuyển tiền</h2>
           <Field label="Số tiền đã chuyển">
-            <input
+            <Input
               type="number"
               min="1"
               value={amount || ""}
@@ -165,13 +172,13 @@ export default function Finance({ data, mutate, busy, readOnly }: PageProps) {
             />
           </Field>
           <Field label="Nội dung / mã tham chiếu">
-            <input
+            <Input
               value={ref}
               maxLength={200}
               onChange={(e) => setRef(e.target.value)}
             />
           </Field>
-          <button
+          <Button
             className="primary"
             disabled={busy || readOnly || amount <= 0 || !ref}
             onClick={() =>
@@ -179,7 +186,7 @@ export default function Finance({ data, mutate, busy, readOnly }: PageProps) {
             }
           >
             Tôi đã chuyển tiền
-          </button>
+          </Button>
           <p className="fine">
             Số dư chỉ thay đổi sau khi người quản lý xác nhận đã nhận tiền.
           </p>
@@ -200,7 +207,7 @@ export default function Finance({ data, mutate, busy, readOnly }: PageProps) {
                 />
                 <b>{vnd(p.amount)}</b>
                 <span>{p.reference}</span>
-                <button
+                <Button
                   className="secondary"
                   disabled={busy || readOnly}
                   onClick={() =>
@@ -212,7 +219,7 @@ export default function Finance({ data, mutate, busy, readOnly }: PageProps) {
                   }
                 >
                   Xác nhận đã nhận
-                </button>
+                </Button>
               </div>
             ))}
         </section>
@@ -230,7 +237,7 @@ export default function Finance({ data, mutate, busy, readOnly }: PageProps) {
               </h3>
               <BillSummary bill={dayBill(data, d.id)} />
               <BillEditor
-                key={d.id + ":" + dayBill(data, d.id).version}
+                key={d.id}
                 data={data}
                 bill={dayBill(data, d.id)}
                 mutate={mutate}
@@ -240,7 +247,7 @@ export default function Finance({ data, mutate, busy, readOnly }: PageProps) {
             </div>
           ))}
           <div className="actions">
-            <button
+            <Button
               className="primary"
               disabled={
                 busy ||
@@ -252,30 +259,35 @@ export default function Finance({ data, mutate, busy, readOnly }: PageProps) {
                 )
               }
               onClick={() => {
-                if (confirm("Quyết toán tuần và ghi công nợ?"))
-                  void mutate("finance.settle", {
-                    weekStart: week,
-                    billVersions: Object.fromEntries(
-                      days.map((d) => [d.id, dayBill(data, d.id).version]),
-                    ),
-                  });
+                void (async () => {
+                  await confirm("Quyết toán tuần và ghi công nợ?", () =>
+                    mutate("finance.settle", {
+                      weekStart: week,
+                      billVersions: Object.fromEntries(
+                        days.map((d) => [d.id, dayBill(data, d.id).version]),
+                      ),
+                    }),
+                  );
+                })();
               }}
             >
               Quyết toán tuần
-            </button>
-            <button
+            </Button>
+            <Button
               className="secondary"
               disabled={busy || readOnly}
               onClick={() => {
-                const reason = prompt("Lý do mở lại quyết toán");
-                if (reason)
-                  void mutate("finance.reopen", { weekStart: week, reason });
+                void (async () => {
+                  await prompt("Lý do mở lại quyết toán", (reason) =>
+                    mutate("finance.reopen", { weekStart: week, reason }),
+                  );
+                })();
               }}
             >
               Mở lại kỳ
-            </button>
+            </Button>
             <Field label="Thành viên điều chỉnh">
-              <select
+              <NativeSelect
                 value={adjustMember}
                 onChange={(e) => setAdjustMember(e.target.value)}
               >
@@ -284,22 +296,22 @@ export default function Finance({ data, mutate, busy, readOnly }: PageProps) {
                     {m.display_name}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </Field>
             <Field label="Số tiền VND (âm để giảm nợ)">
-              <input
+              <Input
                 type="number"
                 value={adjustAmount}
                 onChange={(e) => setAdjustAmount(Number(e.target.value))}
               />
             </Field>
             <Field label="Lý do điều chỉnh">
-              <input
+              <Textarea
                 value={adjustNote}
                 onChange={(e) => setAdjustNote(e.target.value)}
               />
             </Field>
-            <button
+            <Button
               className="secondary"
               disabled={
                 busy ||
@@ -316,7 +328,7 @@ export default function Finance({ data, mutate, busy, readOnly }: PageProps) {
               }
             >
               Thêm điều chỉnh
-            </button>
+            </Button>
           </div>
         </section>
       )}

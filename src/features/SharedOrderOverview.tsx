@@ -1,3 +1,14 @@
+import { NativeSelect } from "../components/ui/native-select";
+import { Card } from "../components/ui/card";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "../components/ui/table";
+import { Input } from "../components/ui/input";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import type { Snapshot } from "../../shared/contracts";
@@ -35,7 +46,8 @@ export default function SharedOrderOverview({
           (filter === "unordered" ? !o : o?.status === filter)),
     );
   return (
-    <section
+    <Card
+      role="region"
       className={"panel shared-overview" + (compact ? " compact" : "")}
       aria-label="Đơn của mọi người"
     >
@@ -51,13 +63,13 @@ export default function SharedOrderOverview({
         </span>
       </div>
       <div className="form-row">
-        <input
+        <Input
           aria-label="Tìm người đặt"
           placeholder="Tìm đồng nghiệp…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <select
+        <NativeSelect
           aria-label="Lọc trạng thái đơn"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
@@ -66,28 +78,28 @@ export default function SharedOrderOverview({
           <option value="active">Đã đặt</option>
           <option value="unordered">Chưa đặt</option>
           <option value="cancelled">Đã huỷ</option>
-        </select>
+        </NativeSelect>
       </div>
       <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Đồng nghiệp</th>
-              <th>Đơn / ghi chú</th>
-              <th>Tiền món / phần chia</th>
-              <th>Thao tác gần nhất</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Đồng nghiệp</TableHead>
+              <TableHead>Đơn / ghi chú</TableHead>
+              <TableHead>Tiền món / phần chia</TableHead>
+              <TableHead>Thao tác gần nhất</TableHead>
+              <TableHead></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {rows.map(({ m, o }) => {
               const actor = data.shared?.actors.find(
                   (a) => a.orderId === o?.id,
                 ),
                 share = bill.shares.find((s) => s.memberId === m.id);
               return (
-                <tr key={m.id}>
-                  <td>
+                <TableRow key={m.id}>
+                  <TableCell data-label="Đồng nghiệp">
                     <b>{m.display_name}</b>
                     {!m.active && <small> · Ngừng hoạt động</small>}
                     <div className="fine">
@@ -97,16 +109,16 @@ export default function SharedOrderOverview({
                           ? "Đã huỷ"
                           : "Chưa đặt"}
                     </div>
-                  </td>
-                  <td>
+                  </TableCell>
+                  <TableCell data-label="Đơn / ghi chú">
                     {o?.items.map((i) => (
                       <div key={i.menuItemId}>
                         {i.name} ×{i.quantity}
                         {i.note && <small> · {i.note}</small>}
                       </div>
                     )) ?? "—"}
-                  </td>
-                  <td>
+                  </TableCell>
+                  <TableCell data-label="Tiền món / phần chia">
                     {o?.status === "active"
                       ? vnd(
                           o.items.reduce(
@@ -118,8 +130,8 @@ export default function SharedOrderOverview({
                     <div className="fine">
                       Chia: {share ? vnd(share.amount) : "—"}
                     </div>
-                  </td>
-                  <td>
+                  </TableCell>
+                  <TableCell data-label="Thao tác gần nhất">
                     {actor ? (
                       <>
                         <span>
@@ -135,8 +147,8 @@ export default function SharedOrderOverview({
                     ) : (
                       "—"
                     )}
-                  </td>
-                  <td>
+                  </TableCell>
+                  <TableCell data-label="">
                     {day &&
                       !day.locked &&
                       bill.state === "preview" &&
@@ -151,14 +163,14 @@ export default function SharedOrderOverview({
                             : "Đặt/chỉnh hộ"}
                         </Link>
                       )}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               );
             })}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
       {!rows.length && <p className="muted">Chưa có đơn phù hợp.</p>}
-    </section>
+    </Card>
   );
 }

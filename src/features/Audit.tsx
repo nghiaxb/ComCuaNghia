@@ -1,3 +1,5 @@
+import Button from "../components/ui/ActionButton";
+import { Input } from "../components/ui/input";
 import { useState } from "react";
 import type { PageProps } from "./common";
 import { Empty } from "./common";
@@ -17,7 +19,7 @@ export default function Audit({ data, mutate, busy, readOnly }: PageProps) {
           <h1>Nhật ký hoạt động</h1>
           <p>Lưu người thực hiện, nội dung trước và sau, thời gian thay đổi.</p>
         </div>
-        <input
+        <Input
           aria-label="Tìm nhật ký"
           placeholder="Tìm loại thao tác, nội dung…"
           value={filter}
@@ -76,13 +78,13 @@ export default function Audit({ data, mutate, busy, readOnly }: PageProps) {
               </span>
               <span>{d.last_error}</span>
               {d.status === "failed" && (
-                <button
+                <Button
                   className="secondary"
                   disabled={busy || readOnly}
                   onClick={() => void mutate("delivery.retry", { id: d.id })}
                 >
                   Thử gửi lại
-                </button>
+                </Button>
               )}
             </div>
           ))
