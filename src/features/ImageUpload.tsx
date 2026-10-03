@@ -9,6 +9,8 @@ export default function ImageUpload({
   onImage: (file: File) => Promise<void>;
 }) {
   const [dragging, setDragging] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [preview, setPreview] = useState<{
     url: string;
@@ -24,7 +26,7 @@ export default function ImageUpload({
   );
   const pending = useRef(false);
   const depth = useRef(0);
-  const receive = async (files: File[]) => {
+  const receive = (files: File[]) => {
     if (disabled || pending.current) return;
     if (files.length !== 1) {
       setError("Vui lòng chọn một ảnh menu mỗi lần.");
@@ -42,18 +44,33 @@ export default function ImageUpload({
     const url = URL.createObjectURL(file);
     previewUrl.current = url;
     setPreview({ url, name: file.name || "Ảnh từ clipboard", size: file.size });
+    setSelectedFile(file);
+    setError("");
+  };
+  async function submit() {
+    if (!selectedFile || disabled || pending.current) return;
     pending.current = true;
+    setSubmitting(true);
     setError("");
     try {
-      await onImage(file);
+      await onImage(selectedFile);
     } catch {
       setError(
         "Chưa xử lý được ảnh menu. Bạn có thể thử chọn hoặc dán lại ảnh.",
       );
     } finally {
       pending.current = false;
+      setSubmitting(false);
     }
-  };
+  }
+  function clear() {
+    if (disabled || pending.current) return;
+    if (previewUrl.current) URL.revokeObjectURL(previewUrl.current);
+    previewUrl.current = null;
+    setPreview(null);
+    setSelectedFile(null);
+    setError("");
+  }
   useEffect(() => {
     const paste = (event: ClipboardEvent) => {
       const images = Array.from(event.clipboardData?.items ?? [])
@@ -99,8 +116,8 @@ export default function ImageUpload({
         <ScanLine size={38} />
         <h2>Đưa thực đơn vào đây</h2>
         <p>
-          Kéo thả ảnh, nhấn Ctrl+V (⌘V trên Mac) hoặc chọn ảnh menu. Kiểm tra
-          các món trước khi công bố.
+          Kéo thả ảnh, nhấn Ctrl+V (⌘V trên Mac) hoặc chọn ảnh menu. Xem lại
+          ảnh, rồi bấm Đọc menu bằng OCR để gửi.
         </p>
         <span className="secondary">
           <Upload size={16} />
@@ -111,7 +128,7 @@ export default function ImageUpload({
           hidden
           type="file"
           accept="image/png,image/jpeg,image/webp"
-          disabled={disabled}
+          disabled={disabled || submitting}
           onChange={(event) => {
             const files = Array.from(event.target.files ?? []);
             event.target.value = "";
@@ -134,6 +151,25 @@ export default function ImageUpload({
           </figcaption>
         </figure>
       )}
+      <div className="form-row">
+        <button
+          type="button"
+          disabled={disabled || submitting || !selectedFile}
+          onClick={() => void submit()}
+        >
+          {submitting ? "Đang đọc menu…" : "Đọc menu bằng OCR"}
+        </button>
+        {selectedFile && (
+          <button
+            type="button"
+            className="secondary"
+            disabled={disabled || submitting}
+            onClick={clear}
+          >
+            Bỏ ảnh đã chọn
+          </button>
+        )}
+      </div>
       {error && (
         <p className="error" role="alert">
           {error}

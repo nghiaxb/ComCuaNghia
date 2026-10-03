@@ -22,7 +22,7 @@ Không điền biến môi trường vẫn xem được giao diện mẫu. Để
 - Mutations chạy trong giao dịch gồm audit và outbox. Nhật ký giữ trước/sau, người thực hiện và lý do. Chat thử lại có giới hạn; event ID giúp nhận diện bản trùng khi mạng mất phản hồi.
 - Quyết toán dùng số nguyên VND, phân bổ phần dư, miễn phần cơm của người thu và chia khoản bao cho người tài trợ. Đã quyết toán cần mở lại trước khi sửa đơn.
 - Mọi nhân viên active được đặt/sửa/hủy hộ, bắt buộc lý do, audit giữ người thao tác/người nhận/trước/sau.
-- OCR nhận kéo thả và Ctrl+V/⌘V, hiện ảnh xem trước ngay và giữ ảnh khi lỗi. Nhập thứ Hai–thứ Sáu, bỏ qua cuối tuần; lỗi OCR phân biệt dịch vụ, phân tích và lưu nháp.
+- OCR nhận kéo thả và Ctrl+V/⌘V để chọn và xem trước ảnh; chỉ gửi khi bấm “Đọc menu bằng OCR”. Có nút bỏ ảnh, giữ ảnh khi lỗi. Nhập thứ Hai–thứ Sáu, bỏ qua cuối tuần; lỗi OCR phân biệt dịch vụ, phân tích và lưu nháp.
 - Đăng nhập Google đã xác minh thuộc `rivercrane.vn`; RLS kiểm tra trạng thái thành viên mỗi request. Client không có quyền ghi trực tiếp bảng.
 
 ## Kiểm tra
