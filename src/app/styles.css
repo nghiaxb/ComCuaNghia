@@ -1,0 +1,482 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--foreground);
+  --color-muted: var(--muted-bg);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--secondary);
+  --color-accent-foreground: var(--foreground);
+  --color-card: var(--background);
+  --color-card-foreground: var(--foreground);
+  --color-popover: var(--background);
+  --color-popover-foreground: var(--foreground);
+  --color-border: var(--border);
+  --color-input: var(--border);
+  --color-ring: var(--primary);
+  --color-destructive: #b42318;
+  --color-destructive-foreground: white;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+}
+:root {
+  --background: #fff;
+  --foreground: #172c25;
+  --primary: #17634a;
+  --primary-foreground: #fff;
+  --secondary: #f1f5f3;
+  --muted-bg: #f6f8f7;
+  --muted-foreground: #61716a;
+  --border: #dde5e1;
+}
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    font-size: 16px;
+  }
+  body {
+    @apply m-0 bg-muted/50 text-foreground antialiased;
+    font-family:
+      Inter,
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      "Segoe UI",
+      sans-serif;
+  }
+  h1 {
+    @apply text-2xl font-semibold tracking-tight md:text-3xl;
+  }
+  h2 {
+    @apply text-lg font-semibold tracking-tight;
+  }
+  h3 {
+    @apply text-sm font-semibold;
+  }
+  p {
+    @apply leading-relaxed;
+  }
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    -webkit-tap-highlight-color: transparent;
+  }
+  button {
+    @apply cursor-pointer;
+  }
+  button:disabled {
+    @apply cursor-not-allowed opacity-50;
+  }
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    @apply min-h-11 w-full min-w-0 rounded-md border bg-background px-3 py-2 text-sm outline-none transition-shadow focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:opacity-50;
+  }
+  input[type="checkbox"] {
+    @apply size-4 shrink-0 accent-primary;
+  }
+  select {
+    @apply max-w-full;
+  }
+  pre {
+    @apply overflow-auto whitespace-pre-wrap break-words rounded-lg bg-muted p-3 text-xs;
+  }
+  summary {
+    @apply cursor-pointer py-2 text-sm text-primary;
+  }
+  :focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+}
+@layer components {
+  [data-slot="button"] {
+    @apply min-h-11;
+  }
+  .wide {
+    @apply w-full;
+  }
+  .page-title {
+    @apply mb-6 flex flex-wrap items-center justify-between gap-3;
+  }
+  .page-title p:not(.eyebrow) {
+    @apply mt-2 text-sm text-muted-foreground;
+  }
+  .eyebrow {
+    @apply mb-2 text-xs font-semibold tracking-wider text-primary;
+  }
+  .panel {
+    @apply mb-5 min-w-0 rounded-xl border bg-background p-4 shadow-xs md:p-5;
+  }
+  .panel > h2 {
+    @apply mb-4;
+  }
+  .section-title {
+    @apply mb-4 flex flex-wrap items-center justify-between gap-2;
+  }
+  .section-title > span {
+    @apply text-xs text-muted-foreground;
+  }
+  .muted,
+  .fine {
+    @apply text-sm text-muted-foreground;
+  }
+  .fine {
+    @apply mt-2 text-xs;
+  }
+  .form-row,
+  .actions {
+    @apply my-3 flex flex-wrap items-end gap-3;
+  }
+  .form-row > .field {
+    @apply min-w-0 flex-1 basis-40;
+  }
+  .form-row > input,
+  .form-row > select {
+    @apply w-auto min-w-0 flex-1 basis-40;
+  }
+  .field {
+    @apply my-3 flex min-w-0 flex-col gap-2 text-sm;
+  }
+  .field > span {
+    @apply font-medium;
+  }
+  .checkbox {
+    @apply my-3 flex items-center gap-2 text-sm;
+  }
+  .notice,
+  .error,
+  .success {
+    @apply mb-4 rounded-lg border p-3 text-sm;
+  }
+  .notice {
+    @apply border-amber-200 bg-amber-50 text-amber-900;
+  }
+  .error {
+    @apply border-red-200 bg-red-50 text-red-800;
+  }
+  .success {
+    @apply border-emerald-200 bg-emerald-50 text-emerald-900;
+  }
+  .tag {
+    @apply inline-flex max-w-full items-center gap-1 rounded-full border bg-secondary px-2 py-1 text-xs font-medium;
+  }
+  .tag.amber {
+    @apply border-amber-200 bg-amber-50 text-amber-900;
+  }
+  .avatar {
+    @apply flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-semibold text-primary;
+  }
+  .person {
+    @apply inline-flex min-w-0 items-center gap-2;
+  }
+  .empty {
+    @apply my-4 flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed p-7 text-center text-muted-foreground;
+  }
+  .empty svg {
+    @apply size-6;
+  }
+  .empty p {
+    @apply max-w-md text-sm;
+  }
+  .stats {
+    @apply mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4;
+  }
+  .stats > article {
+    @apply flex min-w-0 flex-col gap-2 rounded-xl border bg-background p-4;
+  }
+  .stats span {
+    @apply text-xs text-muted-foreground;
+  }
+  .stats strong {
+    @apply break-words text-xl font-semibold;
+  }
+  .stats .small {
+    @apply text-base;
+  }
+  .two-col {
+    @apply grid gap-5 lg:grid-cols-2;
+  }
+  .table-wrap {
+    @apply w-full min-w-0 overflow-x-auto;
+  }
+  table {
+    @apply w-full text-left text-sm;
+  }
+  th {
+    @apply whitespace-nowrap border-b bg-muted/50 px-3 py-3 text-xs font-medium text-muted-foreground;
+  }
+  td {
+    @apply border-b px-3 py-3 align-top;
+  }
+  tbody tr:last-child td {
+    @apply border-b-0;
+  }
+  tbody tr:hover {
+    @apply bg-muted/30;
+  }
+  td small {
+    @apply text-xs text-muted-foreground;
+  }
+  .order-row {
+    @apply flex flex-wrap items-center justify-between gap-3 border-b py-3 text-sm;
+  }
+  .order-row:last-child {
+    @apply border-b-0;
+  }
+  .week-picker {
+    @apply mb-4;
+  }
+  .week-picker .form-row {
+    @apply my-0;
+  }
+  .week-picker .field {
+    @apply my-0;
+  }
+  .week-picker > .muted {
+    @apply mt-2;
+  }
+  .days {
+    @apply mb-5 flex max-w-full flex-wrap gap-2;
+  }
+  .days button {
+    @apply flex min-w-14 flex-col gap-0 border bg-background px-3 py-2 text-foreground;
+  }
+  .days button.selected {
+    @apply border-primary bg-primary text-primary-foreground;
+  }
+  .days small {
+    @apply text-xs;
+  }
+  .order-grid {
+    @apply mb-5 grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_340px];
+  }
+  .order-grid > section {
+    @apply min-w-0 rounded-xl border bg-background p-4 md:p-5;
+  }
+  .meal-list {
+    @apply divide-y;
+  }
+  .meal-row {
+    @apply flex min-w-0 items-center gap-3 py-3;
+  }
+  .meal-row.chosen {
+    @apply rounded-lg bg-primary/5 px-2;
+  }
+  .meal-number {
+    @apply text-xs text-muted-foreground;
+  }
+  .meal-info {
+    @apply min-w-0 flex-1;
+  }
+  .meal-info h3 {
+    @apply break-words text-sm font-medium;
+  }
+  .meal-info > span,
+  .meal-info small {
+    @apply text-xs text-muted-foreground;
+  }
+  .meal-info small {
+    @apply ml-2 text-primary;
+  }
+  .meal-quantity,
+  .quantity {
+    @apply flex shrink-0 items-center gap-2;
+  }
+  .meal-quantity button,
+  .quantity button {
+    @apply min-h-11 min-w-11 px-2;
+  }
+  .meal-quantity output {
+    @apply min-w-5 text-center font-medium;
+  }
+  .cart {
+    @apply self-start rounded-xl border bg-background p-4 shadow-xs lg:sticky lg:top-20;
+  }
+  .cart h2 {
+    @apply mb-2 flex items-center gap-2;
+  }
+  .cart-empty {
+    @apply my-4 rounded-lg bg-muted p-5 text-center text-sm text-muted-foreground;
+  }
+  .cart-item {
+    @apply my-3 flex flex-wrap items-center gap-2 border-b pb-4;
+  }
+  .cart-item > strong {
+    @apply min-w-0 flex-1 basis-1/2 break-words text-sm;
+  }
+  .cart-item > small {
+    @apply w-full text-xs text-muted-foreground;
+  }
+  .cart-item > input {
+    @apply mt-2 w-full;
+  }
+  .cart-total {
+    @apply my-4 flex justify-between border-t pt-4 font-medium;
+  }
+  .mobile-order-bar {
+    @apply fixed inset-x-0 bottom-0 z-40 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-t bg-background p-3 shadow-lg md:hidden;
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+  .mobile-order-bar > button:first-of-type {
+    @apply min-w-0 justify-start px-2 text-left;
+  }
+  .mobile-order-bar strong {
+    @apply ml-2 text-primary;
+  }
+  .bill-values {
+    @apply my-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4;
+  }
+  .bill-values > div {
+    @apply flex flex-col gap-1 rounded-lg bg-muted/50 p-3;
+  }
+  .bill-values dt {
+    @apply text-xs text-muted-foreground;
+  }
+  .bill-values dd {
+    @apply text-base font-semibold;
+  }
+  .bill-values .bill-total {
+    @apply bg-primary/5 text-primary;
+  }
+  .bill-shares {
+    @apply mt-4 grid gap-2;
+  }
+  .bill-warning {
+    @apply mt-3 text-xs text-amber-800;
+  }
+  .upload {
+    @apply flex min-h-52 cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed bg-background p-5 text-center;
+  }
+  .upload.dragging {
+    @apply border-primary bg-primary/5;
+  }
+  .upload p {
+    @apply max-w-lg text-sm text-muted-foreground;
+  }
+  .upload > span {
+    @apply inline-flex items-center gap-2 rounded-md border px-3 py-2;
+  }
+  .menu-image-preview {
+    @apply my-4 rounded-xl border bg-background p-3;
+  }
+  .menu-image-preview img {
+    @apply mx-auto max-h-80 max-w-full rounded-md object-contain;
+  }
+  .menu-image-preview figcaption {
+    @apply mt-2 text-center text-xs text-muted-foreground;
+  }
+  .menu-day {
+    @apply my-3 rounded-lg border bg-muted/20 p-4;
+  }
+  .menu-day h3 {
+    @apply mb-3;
+  }
+  .published-meals {
+    @apply my-3 flex flex-wrap gap-2;
+  }
+  .published-meals > span {
+    @apply rounded-md bg-secondary px-2 py-1 text-xs;
+  }
+  .food-edit {
+    @apply my-2 grid grid-cols-[minmax(0,1fr)_100px_44px] items-center gap-2;
+  }
+  .event {
+    @apply flex gap-3 border-b py-4;
+  }
+  .event > div {
+    @apply min-w-0 flex-1;
+  }
+  .event-dot {
+    @apply mt-1.5 size-2 shrink-0 rounded-full bg-primary;
+  }
+  .diff {
+    @apply grid gap-3 md:grid-cols-2;
+  }
+  .settle-day {
+    @apply my-3 rounded-lg border p-3;
+  }
+  .qr {
+    @apply mx-auto my-4 size-52 max-w-full rounded-lg border object-contain;
+  }
+  .welcome {
+    @apply mx-auto my-8 max-w-lg rounded-2xl border bg-background p-6 text-center shadow-xs md:my-16 md:p-10;
+  }
+  .welcome-mark {
+    @apply mx-auto mb-5 flex size-16 items-center justify-center rounded-xl bg-primary/10 text-primary;
+  }
+  .welcome > p {
+    @apply my-4 text-muted-foreground;
+  }
+  .welcome h1 {
+    @apply leading-tight;
+  }
+  .setup {
+    @apply my-5 rounded-lg bg-muted p-4 text-left;
+  }
+  .setup p {
+    @apply my-2 text-sm text-muted-foreground;
+  }
+  .icon-button {
+    @apply min-h-11 min-w-11;
+  }
+  .text-button {
+    @apply inline-flex min-h-11 items-center gap-2 rounded-md px-2 text-sm font-medium text-primary;
+  }
+  .text-button:hover {
+    @apply bg-secondary;
+  }
+}
+@media (max-width: 767px) {
+  .shared-overview table,
+  .shared-overview tbody {
+    display: block;
+  }
+  .shared-overview thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .shared-overview tbody tr {
+    display: block;
+    margin-bottom: 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--background);
+  }
+  .shared-overview tbody td {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 4px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    overflow-wrap: anywhere;
+    white-space: normal;
+    min-width: 0;
+  }
+  .shared-overview td::before {
+    content: attr(data-label);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted-foreground);
+  }
+  .shared-overview td:last-child::before {
+    display: none;
+  }
+  .shared-overview [data-slot="table-container"] {
+    overflow: visible;
+  }
+}
