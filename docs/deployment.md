@@ -28,3 +28,5 @@ Rollback frontend/Worker bằng Cloudflare deployment trước. Database/ledger 
 Các giới hạn bản hiện tại: audit UI lấy 100 bản gần nhất, chưa phân trang; chưa có audit phiên đăng nhập riêng (Supabase Auth có logs); chưa có công cụ xoay master key tự động; chưa chạy đo tải. Khóa advisory toàn ứng dụng phù hợp nhóm nội bộ nhỏ, cần đo tải trước mở rộng.
 
 Tham khảo: [Supabase CLI configuration](https://supabase.com/docs/guides/local-development/cli/config), [Cloudflare static assets](https://developers.cloudflare.com/workers/static-assets/).
+
+Worker gọi OCR Worker qua workers.dev cần `compatibility_flags: ["global_fetch_strictly_public"]`. Dùng `redirect: "manual"` và từ chối HTTP 3xx, không chuyển tiếp khóa API/webhook theo redirect. Runtime production đã từ chối `redirect: "error"` dù Node fetch chấp nhận; regression test chạy bằng workerd/Miniflare, không chỉ mock Node.

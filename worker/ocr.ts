@@ -101,7 +101,7 @@ export async function requestOcr(
       method: "POST",
       headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
       body: JSON.stringify(image),
-      redirect: "error",
+      redirect: "manual",
       signal: AbortSignal.timeout(45000),
     });
     if (!r.ok) throw Error("upstream");

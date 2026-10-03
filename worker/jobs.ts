@@ -28,7 +28,7 @@ export async function runJobs(env: Env) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formatChat(p, env.APP_URL)),
-        redirect: "error",
+        redirect: "manual",
         signal: AbortSignal.timeout(10000),
       });
       ok = response.ok;
