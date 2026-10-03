@@ -1190,3 +1190,90 @@ footer span {
 #menu-editor {
   scroll-margin-top: 24px;
 }
+
+.confirm-dialog {
+  width: min(480px, calc(100% - 32px));
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  margin: auto;
+  padding: 26px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  color: #20392e;
+  box-shadow: 0 20px 80px #14291d33;
+}
+.confirm-dialog::backdrop { background: #13271dcc; }
+.confirm-dialog h2 { margin-bottom: 18px; }
+.confirm-dialog p { font-size: 13px; }
+.confirm-dialog > button { margin-right: 10px; }
+.primary.danger { background: #a03930; }
+.primary.danger:hover { background: #842b24; }
+.orders-page .page-title { margin-bottom: 20px; }
+.orders-page .week-picker .field { margin-bottom: 0; }
+.orders-page .week-picker > p { display: none; }
+.orders-page .week-picker .form-row { align-items: end; }
+.orders-page .days { margin: 12px 0 24px; }
+.orders-page .order-grid { grid-template-columns: minmax(0, 1fr) 330px; gap: 24px; }
+.meal-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.meal-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px 16px;
+  min-height: 78px;
+}
+.meal-row.chosen { background: #f0f6e9; border-color: #a8c599; }
+.meal-number { color: #8b9880; font-size: 12px; font-variant-numeric: tabular-nums; }
+.meal-info { flex: 1; min-width: 0; }
+.meal-info h3 { margin: 0 0 6px; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.meal-info > span { color: #5f7058; font-size: 12px; }
+.meal-info small { margin-left: 12px; color: #315c3b; font-weight: 600; }
+.meal-quantity { display: flex; gap: 10px; align-items: center; flex-shrink: 0; }
+.meal-quantity button {
+  width: 38px; height: 38px; border: 1px solid #d2dfca;
+  border-radius: 8px; background: #fff; color: var(--green);
+}
+.meal-quantity output { min-width: 20px; text-align: center; font-weight: 600; font-variant-numeric: tabular-nums; }
+.orders-page .cart { padding: 20px; }
+.orders-page .cart-item { gap: 10px; padding: 14px 0; }
+.orders-page .cart-item > small { flex-basis: 100%; color: #68785f; }
+.orders-page .quantity button { width: 34px; height: 34px; }
+.orders-page .cart-item input { font-size: 12px; }
+.mobile-order-bar { display: none; }
+#order-cart { scroll-margin-top: 20px; }
+@media (max-width: 1050px) {
+  .orders-page .order-grid { grid-template-columns: minmax(0, 1fr) 290px; gap: 16px; }
+  .meal-row { padding: 12px; gap: 10px; }
+  .meal-number { display: none; }
+}
+@media (max-width: 850px) {
+  .orders-page .order-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 540px) {
+  .orders-page { padding-bottom: 90px; }
+  .orders-page .eyebrow { display: none; }
+  .orders-page .page-title h1 { font-size: 24px; }
+  .orders-page .week-picker .form-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .orders-page .week-picker .field { grid-column: 1 / -1; grid-row: 1; }
+  .orders-page .week-picker button { padding: 9px 6px; font-size: 10px; }
+  .orders-page .days { margin: 12px 0 20px; }
+  .meal-row { padding: 12px; gap: 8px; }
+  .meal-info h3 { font-size: 13px; }
+  .meal-info > span { font-size: 11px; }
+  .meal-info small { display: block; margin: 3px 0 0; font-size: 10px; }
+  .meal-quantity { gap: 7px; }
+  .meal-quantity button { width: 36px; height: 40px; }
+  .mobile-order-bar {
+    position: fixed; bottom: 68px; left: 0; right: 0; z-index: 20;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; padding: 12px 18px; background: #fff;
+    border-top: 1px solid var(--line); box-shadow: 0 -6px 20px #20392e0d;
+  }
+  .mobile-order-bar > .text-button { padding: 0; gap: 10px; text-align: left; }
+  .mobile-order-bar strong { display: block; margin-top: 4px; font-size: 16px; color: var(--green); }
+  .mobile-order-bar > .primary { min-width: 110px; }
+  .confirm-dialog { padding: 22px; }
+}

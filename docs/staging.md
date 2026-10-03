@@ -60,3 +60,10 @@ Verification: 42 unit, 27 integration and 24 browser tests passed; configured pr
 
 
 2026-10-03 static asset MIME incident: direct uploads incorrectly declared every multipart file as application/octet-stream. Live /order and other SPA routes returned HTML bytes with that MIME, causing browsers to download the page. Corrected the uploader to send text/html, text/javascript and text/css, with MIME included in the asset identity so cached incorrect metadata is not reused. Added scripts/upload-worker-assets.py and scripts/check-deployed-assets.py; the live header check reproduced the failure before redeployment. Future direct uploads must use this helper, then run the live MIME/attachment check (a 200/body match alone is insufficient). No app/database logic changed.
+
+
+2026-10-03 compact ordering UI: removed the decorative order banner and food illustrations. Menu dishes now appear as compact rows with name, price, visible quantity controls and selected-state highlighting. The desktop cart remains alongside the list; mobile has a fixed total/view-order/save toolbar above navigation. Week navigation is compact on mobile. Both save controls share validation and payload logic, including proxy reason, lock/settlement/read-only checks and expected order version.
+
+Published-menu deletion now opens a native modal immediately, displaying the target day, affected active-order count and mandatory reason. Initial focus goes to the reason; Escape/Back restore the trigger; processing disables cancellation, and success closes the modal. Existing audited menu.withdraw semantics unchanged.
+
+Verification: new browser regression tests failed before implementation and now pass for modal focus/Escape, list portion editing and mobile save. Full 42 unit, 27 integration and 27 browser tests pass; configured build/typecheck, Worker dry-run and secret scan passed. Desktop/mobile screenshots were inspected, and independent review found no blockers. No database changes or live Chat test messages.

@@ -1,6 +1,5 @@
 import { proxyOrder } from "../lib/api";
 import type { Order } from "../../shared/contracts";
-import { MealArt } from "./MealArt";
 import { useEffect, useState } from "react";
 import { ShoppingBag, Plus, Minus, LockKeyhole, Clock3 } from "lucide-react";
 import type { PageProps } from "./common";
@@ -118,8 +117,16 @@ export default function Orders({
         : [...old, { menuItemId: id, quantity: 1, note: "" }],
     );
   }
+  function decrease(id: string) {
+    setCart((old) => old.map((item) => item.menuItemId === id ? {...item, quantity: item.quantity - 1} : item).filter((item) => item.quantity > 0));
+  }
+  const saveBlocked = !cart.length || !day || blocked || (proxy && !reason.trim());
+  function saveOrder() {
+    if (saveBlocked || !day) return;
+    void mutate("order.save", {dayId: day.id, memberId, items: cart, ...(proxy ? {reason: reason.trim()} : {})}, order?.version ?? 0);
+  }
   return (
-    <>
+    <div className="orders-page">
       <div className="page-title">
         <div>
           <p className="eyebrow">MỖI NGÀY, MỘT BỮA NGON</p>
@@ -131,20 +138,6 @@ export default function Orders({
           trước
         </span>
       </div>
-      <section className="hero">
-        <div>
-          <span className="tag light">BỮA TRƯA VĂN PHÒNG</span>
-          <h2>
-            Một bữa ngon,
-            <br />
-            thêm chút gắn kết.
-          </h2>
-          <p>Đặt cơm cùng đồng nghiệp, theo dõi mọi thay đổi ngay tại đây.</p>
-        </div>
-        <div className="bowl" aria-hidden="true">
-          <MealArt />
-        </div>
-      </section>
       <WeekPicker
         value={week}
         onChange={setWeek}
@@ -200,38 +193,29 @@ export default function Orders({
           {!foods.length ? (
             <Empty text="Menu chưa được công bố. Quay lại sau hoặc liên hệ người điều phối." />
           ) : (
-            <div className="food-grid">
-              {foods.map((food, i) => (
-                <article className="food-card" key={food.id}>
-                  <div className={"food-art tone-" + (i % 4)}>
-                    <span style={{ width: 150, height: 120 }}>
-                      <MealArt variant={i} />
-                    </span>
-                    <span className="food-index">
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                  </div>
-                  <div className="food-body">
-                    <small>BẾP NHÀ • CƠM TRƯA</small>
-                    <h3>{food.name}</h3>
-                    <div className="food-bottom">
-                      <strong>{vnd(food.unit_price)}</strong>
-                      <button
-                        className="icon-button"
-                        aria-label={"Thêm " + food.name}
-                        onClick={() => add(food.id)}
-                        disabled={blocked}
-                      >
-                        <Plus size={19} />
-                      </button>
+            <ul className="meal-list" aria-label="Danh sách món">
+              {foods.map((food, index) => {
+                const quantity = cart.find((item) => item.menuItemId === food.id)?.quantity ?? 0;
+                return (
+                  <li className={"meal-row" + (quantity ? " chosen" : "")} key={food.id}>
+                    <span className="meal-number" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
+                    <div className="meal-info">
+                      <h3>{food.name}</h3>
+                      <span>{vnd(food.unit_price)} / suất</span>
+                      {quantity > 0 && <small>Đã chọn</small>}
                     </div>
-                  </div>
-                </article>
-              ))}
-            </div>
+                    <div className="meal-quantity">
+                      <button aria-label={"Giảm " + food.name} disabled={blocked || !quantity} onClick={() => decrease(food.id)}><Minus size={16} /></button>
+                      <output aria-label={"Số lượng " + food.name}>{quantity}</output>
+                      <button aria-label={"Thêm " + food.name} disabled={blocked || quantity >= 100} onClick={() => add(food.id)}><Plus size={16} /></button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
           )}
         </section>
-        <aside className="cart">
+        <aside className="cart" id="order-cart">
           <h2>
             <ShoppingBag size={20} />{" "}
             {proxy ? "Đặt cơm hộ đồng nghiệp" : "Bữa trưa của bạn"}
@@ -367,25 +351,8 @@ export default function Orders({
           </div>
           <button
             className="primary wide"
-            disabled={
-              !cart.length ||
-              !day ||
-              day.locked ||
-              blocked ||
-              (proxy && !reason.trim())
-            }
-            onClick={() =>
-              void mutate(
-                "order.save",
-                {
-                  dayId: day!.id,
-                  memberId,
-                  items: cart,
-                  ...(proxy ? { reason: reason.trim() } : {}),
-                },
-                order?.version ?? 0,
-              )
-            }
+            disabled={saveBlocked}
+            onClick={saveOrder}
           >
             {busy ? "Đang lưu…" : order ? "Lưu thay đổi" : "Đặt bữa trưa"}
           </button>
@@ -413,6 +380,12 @@ export default function Orders({
           </p>
         </aside>
       </div>
-    </>
+      <section className="mobile-order-bar" aria-label="Thao tác đơn cơm">
+        <button className="text-button" onClick={() => document.getElementById("order-cart")?.scrollIntoView({behavior: "smooth", block: "start"})}>
+          <ShoppingBag size={18} /><span>{cart.reduce((sum, item) => sum + item.quantity, 0)} suất · Xem đơn<strong>{vnd(total)}</strong></span>
+        </button>
+        <button className="primary" disabled={saveBlocked} onClick={saveOrder}>{busy ? "Đang lưu…" : "Lưu đơn"}</button>
+      </section>
+    </div>
   );
 }

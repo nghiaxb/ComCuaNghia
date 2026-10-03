@@ -1,3 +1,4 @@
+import ConfirmDialog from "./ConfirmDialog";
 import ImageUpload from "./ImageUpload";
 import WeekPicker from "./WeekPicker";
 import { useState } from "react";
@@ -201,7 +202,7 @@ export default function Menus({ data, mutate, busy, readOnly }: PageProps) {
           </article>
         ))}
         {removing && (
-          <div className="notice" role="group" aria-label="Xác nhận xoá menu">
+          <ConfirmDialog busy={busy} onClose={() => setRemoving(null)}>
             <h3>Gỡ menu {dateLabel(removing.date)}?</h3>
             <p>
               {
@@ -215,6 +216,7 @@ export default function Menus({ data, mutate, busy, readOnly }: PageProps) {
             </p>
             <Field label="Lý do gỡ menu">
               <input
+                autoFocus
                 value={reason}
                 maxLength={500}
                 disabled={busy}
@@ -229,7 +231,7 @@ export default function Menus({ data, mutate, busy, readOnly }: PageProps) {
               Quay lại
             </button>
             <button
-              className="primary"
+              className="primary danger"
               disabled={busy || readOnly || !reason.trim()}
               onClick={async () => {
                 const result = await mutate(
@@ -246,7 +248,7 @@ export default function Menus({ data, mutate, busy, readOnly }: PageProps) {
             >
               Xác nhận gỡ menu
             </button>
-          </div>
+          </ConfirmDialog>
         )}
       </section>
       <section className="panel">

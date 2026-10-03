@@ -30,7 +30,7 @@ export default function WeekPicker({
     ]),
   ].sort();
   return (
-    <div>
+    <div className="week-picker">
       <div className="form-row">
         <button
           className="secondary"
