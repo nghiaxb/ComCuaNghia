@@ -1,60 +1,4 @@
-create schema if not exists private;
-revoke all on schema private from public;
-grant usage on schema private to authenticated,service_role;
-create table public.members(id uuid primary key default gen_random_uuid(),auth_user_id uuid unique references auth.users(id),email text unique,display_name text not null,role text not null default 'employee' check(role in('employee','coordinator','admin')),active boolean not null default true,can_manage_finance boolean not null default false,version integer not null default 1);
-create table public.settings(id boolean primary key default true check(id),version integer not null default 1,data jsonb not null);
-insert into public.settings(data) values('{"cutoffTime":"17:00","reminderTime":"16:45","holidays":[],"defaultPrice":35000,"collectorId":null,"bankCode":"","accountNumber":"","accountName":"","chatEnabled":true}');
-create table public.days(id uuid primary key default gen_random_uuid(),date date not null unique,locked boolean not null default false,version integer not null default 1);
-create table public.menu_drafts(id uuid primary key default gen_random_uuid(),actor_id uuid not null references public.members,week_start date not null,days jsonb not null,version integer not null default 1,updated_at timestamptz not null default now());
-create table public.menu_versions(id uuid primary key default gen_random_uuid(),actor_id uuid not null references public.members,content jsonb not null,created_at timestamptz not null default now());
-create table public.foods(id uuid primary key default gen_random_uuid(),day_id uuid not null references public.days,name text not null check(length(name) between 1 and 200),unit_price bigint not null check(unit_price between 0 and 9007199254740991),active boolean not null default true,menu_version_id uuid references public.menu_versions);
-create table public.orders(id uuid primary key default gen_random_uuid(),day_id uuid not null references public.days,member_id uuid not null references public.members,items jsonb not null,status text not null default 'active' check(status in('active','cancelled')),version integer not null default 1,updated_at timestamptz not null default now(),unique(day_id,member_id));
-create table public.audit_events(id uuid primary key default gen_random_uuid(),actor_id uuid references public.members,subject_id uuid references public.members,kind text not null,entity_id uuid,before jsonb,after jsonb,created_at timestamptz not null default now(),after_cutoff boolean not null default false,request_id uuid not null);
-create table public.destinations(id uuid primary key default gen_random_uuid(),name text not null,active boolean not null default true);
-create table private.destination_secrets(id uuid primary key references public.destinations,ciphertext text not null);
-create table private.deliveries(id uuid primary key default gen_random_uuid(),event_id uuid not null references public.audit_events,destination_id uuid not null references public.destinations,kind text not null,ciphertext text not null,payload jsonb not null,status text not null default 'pending',attempts integer not null default 0,next_attempt_at timestamptz not null default now(),lease_until timestamptz,last_error text,unique(event_id,destination_id));
-create table private.requests(actor_id uuid not null,request_id uuid not null,kind text not null,payload jsonb not null,response jsonb not null,primary key(actor_id,request_id));
-create table public.settlements(id uuid primary key default gen_random_uuid(),week_start date not null,version integer not null,state text not null check(state in('settled','reopened')),snapshot jsonb not null,created_at timestamptz not null default now(),unique(week_start,version));
-create table public.ledger_entries(id uuid primary key default gen_random_uuid(),member_id uuid not null references public.members,amount bigint not null check(abs(amount)<=9007199254740991),kind text not null,note text not null,week_start date,settlement_id uuid references public.settlements,import_batch_id uuid,created_at timestamptz not null default now());
-create table public.payments(id uuid primary key default gen_random_uuid(),member_id uuid not null references public.members,amount bigint not null check(amount>0 and amount<=9007199254740991),reference text not null check(length(reference) between 1 and 200),status text not null default 'reported' check(status in('reported','confirmed')),version integer not null default 1);
-create table private.reminder_keys(day_id uuid not null references public.days,primary key(day_id));
-create table private.import_batches(id uuid primary key,content jsonb not null,applied boolean not null default false,fingerprint text,rolled_back boolean not null default false,created_at timestamptz not null default now());
-alter table public.ledger_entries add constraint ledger_import_batch_fk foreign key(import_batch_id) references private.import_batches(id);
-create unique index active_import_fingerprint on private.import_batches(fingerprint) where not rolled_back;
-create index orders_day on public.orders(day_id);create index audit_subject_date on public.audit_events(subject_id,created_at desc);create index ledger_member on public.ledger_entries(member_id);create index delivery_due on private.deliveries(status,next_attempt_at);
-create or replace function private.provision_member() returns trigger language plpgsql security definer set search_path='' as $$ begin
- -- GoTrue inserts the OAuth user before confirming email in a subsequent update.
- -- Pending Auth users receive no application membership or data access.
- if new.email_confirmed_at is null then return new;end if;
- if new.email is null or split_part(lower(new.email),'@',2)<>'rivercrane.vn' or (new.raw_app_meta_data->>'provider') is distinct from 'google' then raise exception 'FORBIDDEN: verified company Google identity required'; end if;
- insert into public.members(id,auth_user_id,email,display_name) values(new.id,new.id,lower(new.email),split_part(new.email,'@',1)) on conflict(email) do update set auth_user_id=excluded.auth_user_id where public.members.auth_user_id is null or public.members.auth_user_id=excluded.auth_user_id; if not found then raise exception 'FORBIDDEN: identity collision';end if;
- return new;end $$;
-create trigger provision_member after insert or update of email,email_confirmed_at on auth.users for each row execute function private.provision_member();
-create function private.actor() returns public.members language plpgsql stable security definer set search_path='' as $$ declare m public.members;begin select * into m from public.members where auth_user_id=auth.uid() and active; if m.id is null then raise exception 'FORBIDDEN: inactive membership';end if;return m;end $$;
-create function private.allowed(owner uuid default null,finance boolean default false) returns boolean language sql stable security definer set search_path='' as $$ select exists(select 1 from public.members m where m.auth_user_id=auth.uid() and m.active and (owner is null or owner=m.id or m.role='admin' or (finance and m.can_manage_finance) or (not finance and m.role='coordinator'))) $$;
-create function private.is_admin() returns boolean language sql stable security definer set search_path='' as $$select exists(select 1 from public.members where auth_user_id=auth.uid() and active and role='admin')$$;
-do $$declare t text;begin foreach t in array array['members','settings','days','menu_drafts','menu_versions','foods','orders','audit_events','destinations','settlements','ledger_entries','payments'] loop execute format('alter table public.%I enable row level security',t);execute format('revoke all on public.%I from anon,authenticated',t);execute format('grant select on public.%I to authenticated',t);end loop;end $$;
-create policy members_read on public.members for select to authenticated using(private.allowed(id) or private.allowed(id,true));
-create policy settings_read on public.settings for select to authenticated using(private.allowed());
-create policy days_read on public.days for select to authenticated using(private.allowed());
-create policy foods_read on public.foods for select to authenticated using(private.allowed());
-create policy draft_read on public.menu_drafts for select to authenticated using(private.allowed(actor_id));
-create policy menu_read on public.menu_versions for select to authenticated using(private.is_admin());
-create policy orders_read on public.orders for select to authenticated using(private.allowed(member_id) or private.allowed(member_id,true));
-create policy audit_read on public.audit_events for select to authenticated using((private.allowed(coalesce(subject_id,actor_id),kind like 'finance.%' or kind like 'payment.%') or private.allowed(actor_id,kind like 'finance.%' or kind like 'payment.%')) and (kind not like 'settings.%' and kind not like 'member.%' or private.is_admin()));
-create policy dest_read on public.destinations for select to authenticated using(private.is_admin());
-create policy settlement_read on public.settlements for select to authenticated using(private.allowed('00000000-0000-0000-0000-000000000000',true));
-create policy ledger_read on public.ledger_entries for select to authenticated using(private.allowed(member_id,true));
-create policy payments_read on public.payments for select to authenticated using(private.allowed(member_id,true));
-create function private.allocate(total bigint,weights jsonb) returns jsonb language plpgsql set search_path='' as $$declare denominator numeric;result jsonb='{}';r record;used bigint=0;amount bigint;begin
- if total<0 or total>9007199254740991 then raise exception 'VALIDATION: amount';end if;
- select sum((value->>'weight')::numeric) into denominator from jsonb_array_elements(weights);
- if total>0 and coalesce(denominator,0)<=0 then raise exception 'VALIDATION: empty weights';end if;
- for r in select value->>'id' id,case when denominator>0 then floor(total::numeric*(value->>'weight')::numeric/denominator)::bigint else 0 end n from jsonb_array_elements(weights) loop result=result||jsonb_build_object(r.id,r.n);used=used+r.n;end loop;
- for r in select value->>'id' id from jsonb_array_elements(weights) order by mod(total::numeric*(value->>'weight')::numeric,nullif(denominator,0)) desc,value->>'id' loop exit when used>=total;result=jsonb_set(result,array[r.id],to_jsonb((result->>r.id)::bigint+1));used=used+1;end loop;return result;end $$;
-create function private.need(ok boolean,message text) returns void language plpgsql set search_path='' as $$begin if ok is distinct from true then raise exception 'VALIDATION: %',message;end if;end $$;
-create function private.integer_value(value jsonb,min_value numeric default 0,max_value numeric default 9007199254740991) returns boolean language sql immutable set search_path='' as $$select case when jsonb_typeof(value)='number' then (value::text)::numeric=trunc((value::text)::numeric) and (value::text)::numeric between min_value and max_value else false end$$;
-create function private.menu_order_change(order_id uuid,new_items jsonb,reason text,rid uuid) returns void language plpgsql security definer set search_path='' as $$
+create or replace function private.menu_order_change(order_id uuid,new_items jsonb,reason text,rid uuid) returns void language plpgsql security definer set search_path='' as $$
 declare m public.members;before_order public.orders;after_order public.orders;day public.days;cfg jsonb;event_id uuid;late boolean;begin
  m=private.actor();if m.role='employee' then raise exception 'FORBIDDEN';end if;
  select * into before_order from public.orders where id=order_id and status='active';if before_order.id is null then return;end if;
@@ -67,8 +11,8 @@ declare m public.members;before_order public.orders;after_order public.orders;da
  insert into private.deliveries(event_id,destination_id,kind,ciphertext,payload) select event_id,dd.id,'order.menu.change',ss.ciphertext,jsonb_build_object('eventId',event_id,'actor',m.display_name,'subject',(select display_name from public.members where id=before_order.member_id),'kind','order.menu.change','date',day.date,'reason',reason,'afterCutoff',late,'before',to_jsonb(before_order),'after',to_jsonb(after_order)) from public.destinations dd join private.destination_secrets ss on ss.id=dd.id where dd.active;
  end if;
 end $$;
-create function private.settled_weeks() returns jsonb language plpgsql stable security definer set search_path='' as $$begin perform private.actor();return (select coalesce(jsonb_agg(distinct week_start order by week_start),'[]') from public.settlements where state='settled');end $$;
-create function private.run(k text,p jsonb,v integer,rid uuid) returns jsonb language plpgsql security definer set search_path='' as $$
+create or replace function private.settled_weeks() returns jsonb language plpgsql stable security definer set search_path='' as $$begin perform private.actor();return (select coalesce(jsonb_agg(distinct week_start order by week_start),'[]') from public.settlements where state='settled');end $$;
+create or replace function private.run(k text,p jsonb,v integer,rid uuid) returns jsonb language plpgsql security definer set search_path='' as $$
 declare m public.members;old jsonb;res jsonb;req private.requests;d public.days;o public.orders;f public.foods;item jsonb;items jsonb='[]';x jsonb;dayid uuid;entity uuid;subject uuid;eid uuid;cfg jsonb;ver uuid;late boolean=false;notify boolean=true;amount bigint;weights jsonb;shares jsonb;covered jsonb;sponsors jsonb;extra bigint;sp jsonb;pair record;wk date;sett public.settlements;pay public.payments;dest uuid;previous_foods jsonb;keep_ids uuid[];renamed_ids uuid[];affected_orders integer=0;menu_changed boolean=false;new_items jsonb;menu_week date;do_clear boolean=false;
 begin
  m=private.actor(); if rid is null or v is null or v<0 then raise exception 'VALIDATION: command';end if;
@@ -302,54 +246,9 @@ begin
  -- Secret command cache never retains plaintext/ciphertext supplied by callers.
  insert into private.requests values(m.id,rid,k,p,res);return res;
 end $$;
-create function public.command(kind text,payload jsonb,expected_version integer,request_id uuid) returns jsonb language sql security invoker set search_path='' as $$ select private.run(kind,payload,expected_version,request_id) $$;
-create function public.snapshot() returns jsonb language plpgsql security invoker set search_path='' as $$declare member jsonb;begin
+create or replace function public.snapshot() returns jsonb language plpgsql security invoker set search_path='' as $$declare member jsonb;begin
  select to_jsonb(m) into member from public.members m where auth_user_id=auth.uid() and active;if member is null then raise exception 'FORBIDDEN';end if;
  return jsonb_build_object('member',member,'settledWeeks',private.settled_weeks(),'members',(select coalesce(jsonb_agg(m),'[]') from public.members m),'days',(select coalesce(jsonb_agg(d order by date),'[]') from public.days d),'foods',(select coalesce(jsonb_agg(f),'[]') from public.foods f where active),'orders',(select coalesce(jsonb_agg(o),'[]') from public.orders o),'drafts',(select coalesce(jsonb_agg(md),'[]') from public.menu_drafts md),'events',(select coalesce(jsonb_agg(e),'[]') from (select * from public.audit_events order by created_at desc limit 100) e),'entries',(select coalesce(jsonb_agg(e),'[]') from public.ledger_entries e),'payments',(select coalesce(jsonb_agg(p),'[]') from public.payments p),'settings',(select to_jsonb(s) from public.settings s),'destinations',(select coalesce(jsonb_agg(d),'[]') from public.destinations d),'deliveries','[]'::jsonb);
  end $$;
-revoke execute on all functions in schema private from public,anon,authenticated;
-grant execute on function private.run(text,jsonb,integer,uuid),private.allowed(uuid,boolean),private.is_admin(),private.settled_weeks() to authenticated;
-revoke execute on function public.command(text,jsonb,integer,uuid),public.snapshot() from public,anon;
-grant execute on function public.command(text,jsonb,integer,uuid),public.snapshot() to authenticated;
-create function public.claim_deliveries() returns jsonb language plpgsql security definer set search_path='' as $$declare result jsonb;begin
- update private.deliveries set status='failed',last_error='Lease expired after final attempt; inspect event ID before retry' where status='sending' and lease_until<now() and attempts>=5;
- with due as(select dl.id from private.deliveries dl join public.destinations dd on dd.id=dl.destination_id where dd.active and dl.attempts<5 and ((dl.status='pending' and dl.next_attempt_at<=now()) or (dl.status='sending' and dl.lease_until<now())) order by dl.next_attempt_at limit 10 for update of dl skip locked),claimed as(update private.deliveries set status='sending',attempts=attempts+1,lease_until=now()+interval '3 minutes' where id in(select id from due) returning *) select coalesce(jsonb_agg(claimed),'[]') into result from claimed;return result;end $$;
-create function public.finish_delivery(delivery_id uuid,lease timestamptz,success boolean,error_message text,retry_seconds integer) returns void language plpgsql security definer set search_path='' as $$begin
- update private.deliveries set status=case when success then 'sent' when attempts>=5 or error_message like 'PERMANENT%' then 'failed' else 'pending' end,last_error=case when success then null else left(error_message,300) end,next_attempt_at=now()+make_interval(secs=>greatest(retry_seconds,(array[60,300,900,3600,10800])[least(attempts,5)])),lease_until=null where id=delivery_id and lease_until=lease and status='sending';end $$;
-create function public.delivery_status() returns jsonb language plpgsql security definer set search_path='' as $$begin if not private.is_admin() then return '[]';end if;return(select coalesce(jsonb_agg(s),'[]') from(select id,kind,status,attempts,last_error from private.deliveries order by next_attempt_at desc limit 100)s);end $$;
-create function public.enqueue_reminders() returns integer language plpgsql security definer set search_path='' as $$declare d public.days;cfg jsonb;eid uuid;n integer=0;local_now timestamp=now() at time zone 'Asia/Ho_Chi_Minh';begin
- perform pg_advisory_xact_lock(724191);select data into cfg from public.settings;
- if not coalesce((cfg->>'chatEnabled')::boolean,true) or not exists(select 1 from public.destinations d join private.destination_secrets s on s.id=d.id where d.active) then return 0;end if;
- for d in select * from public.days where date=local_now::date+1 and not locked and extract(isodow from date) between 2 and 5 loop
- if cfg->'holidays' ? d.date::text or not exists(select 1 from public.foods where day_id=d.id and active) then continue;end if;
- if local_now::time < (cfg->>'reminderTime')::time or local_now >= local_now::date+(cfg->>'reminderTime')::time+interval '15 minutes' then continue;end if;
- insert into private.reminder_keys values(d.id) on conflict do nothing;if not found then continue;end if;
- insert into public.audit_events(kind,entity_id,after,request_id) values('reminder',d.id,jsonb_build_object('date',d.date),gen_random_uuid()) returning id into eid;
- insert into private.deliveries(event_id,destination_id,kind,ciphertext,payload) select eid,dd.id,'reminder',ss.ciphertext,jsonb_build_object('eventId',eid,'kind','Nhắc đặt cơm '||d.date,'actor','Cơm Của Nghĩa') from public.destinations dd join private.destination_secrets ss on ss.id=dd.id where dd.active;n=n+1;end loop;return n;end $$;
-revoke execute on function public.claim_deliveries(),public.finish_delivery(uuid,timestamptz,boolean,text,integer),public.enqueue_reminders() from public,anon,authenticated;
-grant execute on function public.claim_deliveries(),public.finish_delivery(uuid,timestamptz,boolean,text,integer),public.enqueue_reminders() to service_role;
-revoke execute on function public.delivery_status() from public,anon;grant execute on function public.delivery_status() to authenticated;
--- Supabase publication is configured only when installed (PGlite tests do not emulate its transport).
-do $$declare t text;begin if exists(select 1 from pg_publication where pubname='supabase_realtime') then foreach t in array array['days','foods','orders','ledger_entries','payments','members'] loop execute format('alter publication supabase_realtime add table public.%I',t);end loop;end if;end $$;
-
--- Private OCR image objects. Storage is absent in the lightweight PostgreSQL test harness.
-do $$begin if to_regclass('storage.buckets') is not null then
- insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types) values('menu-images','menu-images',false,10485760,array['image/png','image/jpeg','image/webp']) on conflict(id) do nothing;
- execute $policy$create policy menu_image_insert on storage.objects for insert to authenticated with check(bucket_id='menu-images' and exists(select 1 from public.members where auth_user_id=auth.uid() and active and role in('admin','coordinator') and id::text=split_part(name,'/',1)))$policy$;
- execute $policy$create policy menu_image_read on storage.objects for select to authenticated using(bucket_id='menu-images' and exists(select 1 from public.members where auth_user_id=auth.uid() and active and role in('admin','coordinator')))$policy$;
- end if;end $$;
-
--- Only minimal active recipient names are shared; no member profiles or financial data.
-create function private.proxy_recipients() returns jsonb language plpgsql security definer set search_path='' as $$begin
- perform private.actor();
- return (select coalesce(jsonb_agg(jsonb_build_object('id',id,'display_name',display_name) order by display_name,id),'[]') from public.members where active);
-end $$;
-create function private.proxy_order(day_id uuid,recipient_id uuid) returns jsonb language plpgsql security definer set search_path='' as $$begin
- perform private.actor();
- if not exists(select 1 from public.members m where m.id=recipient_id and m.active) or not exists(select 1 from public.days d where d.id=day_id) then raise exception 'VALIDATION: day/member';end if;
- return (select to_jsonb(o) from public.orders o where o.day_id=proxy_order.day_id and o.member_id=recipient_id);
-end $$;
-create function public.proxy_recipients() returns jsonb language sql security invoker set search_path='' as $$select private.proxy_recipients()$$;
-create function public.proxy_order(day_id uuid,recipient_id uuid) returns jsonb language sql security invoker set search_path='' as $$select private.proxy_order(day_id,recipient_id)$$;
-revoke execute on function private.proxy_recipients(),private.proxy_order(uuid,uuid),public.proxy_recipients(),public.proxy_order(uuid,uuid) from public,anon,authenticated;
-grant execute on function private.proxy_recipients(),private.proxy_order(uuid,uuid),public.proxy_recipients(),public.proxy_order(uuid,uuid) to authenticated;
+revoke execute on function private.menu_order_change(uuid,jsonb,text,uuid),private.settled_weeks() from public,anon,authenticated;
+grant execute on function private.settled_weeks() to authenticated;

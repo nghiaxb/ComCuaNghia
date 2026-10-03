@@ -226,7 +226,7 @@ it("republication does not duplicate active menu names", async () => {
     .rows;
   expect(foods.filter((f) => f.name === "Cơm gà")).toHaveLength(1);
   const order = (await db.query<any>("select * from public.orders")).rows[0];
-  expect(order.items[0].unitPrice).toBe(35000);
+  expect(order.items[0].unitPrice).toBe(36000);
 });
 it("stores menu drafts without publishing or notifying", async () => {
   await actor(admin);
@@ -647,7 +647,7 @@ it("lets employees place, change and cancel proxy orders with reasons until manu
     ),
   ).rejects.toThrow(/LOCKED/);
 });
-it("withdraws a menu with audit/outbox while preserving orders and rejects stale or locked changes", async () => {
+it("withdraws a menu with audit/outbox while cancelling active orders and preserving history", async () => {
   await actor(admin);
   await command("menu.publish", {
     days: [
@@ -670,7 +670,11 @@ it("withdraws a menu with audit/outbox while preserving orders and rejects stale
     memberId: employee,
     items: [{ menuItemId: food.id, quantity: 1, note: "" }],
   });
-  const payload = { dayId: day.id, reason: "Nhập nhầm menu" };
+  const payload = {
+    dayId: day.id,
+    reason: "Nhập nhầm menu",
+    cancelExistingOrders: true,
+  };
   await expect(command("menu.withdraw", payload, day.version)).rejects.toThrow(
     /FORBIDDEN/,
   );
@@ -706,6 +710,13 @@ it("withdraws a menu with audit/outbox while preserving orders and rejects stale
       [day.id],
     )
   ).rows;
+  expect(
+    (
+      await db.query<any>("select status from public.orders where id=$1", [
+        order.id,
+      ])
+    ).rows[0].status,
+  ).toBe("cancelled");
   expect(event).toHaveLength(1);
   expect(event[0].before.foods[0].name).toBe("Cơm test");
   expect(event[0].after.reason).toBe(payload.reason);
@@ -799,4 +810,202 @@ it("deletes saved drafts only for staff with version and audit", async () => {
       )
     ).rows[0].before.id,
   ).toBe(draft.id);
+});
+it("reconciles menu IDs, reprices open orders and cancels only renamed portions with Chat audit", async () => {
+  await actor(admin);
+  const date = "2030-06-03";
+  await command("menu.publish", {
+    days: [
+      {
+        date,
+        foods: [
+          { name: "Gà mới", unitPrice: 35000 },
+          { name: "Cá mới", unitPrice: 40000 },
+        ],
+      },
+    ],
+    notifyChat: false,
+  });
+  const day = (
+    await db.query<any>("select * from public.days where date=$1", [date])
+  ).rows[0];
+  const foods = (
+    await db.query<any>(
+      "select * from public.foods where day_id=$1 and active order by name",
+      [day.id],
+    )
+  ).rows;
+  const chicken = foods.find((f: any) => f.name === "Gà mới"),
+    fish = foods.find((f: any) => f.name === "Cá mới");
+  await actor(employee);
+  const placed = await command("order.save", {
+    dayId: day.id,
+    memberId: employee,
+    items: [
+      { menuItemId: chicken.id, quantity: 2, note: "Ít cay" },
+      { menuItemId: fish.id, quantity: 1, note: "" },
+    ],
+  });
+  await actor(admin);
+  await command("menu.publish", {
+    days: [
+      {
+        date,
+        foods: [
+          { id: chicken.id, name: "Gà mới", unitPrice: 45000 },
+          { id: fish.id, name: "Cá đổi tên", unitPrice: 40000 },
+        ],
+      },
+    ],
+    expectedDayVersions: { [date]: day.version },
+    notifyChat: false,
+  });
+  const updated = (
+    await db.query<any>("select * from public.orders where id=$1", [placed.id])
+  ).rows[0];
+  expect(updated.status).toBe("active");
+  expect(updated.items).toEqual([{ ...placed.items[0], unitPrice: 45000 }]);
+  expect(updated.version).toBe(placed.version + 1);
+  expect(
+    (
+      await db.query<any>(
+        "select id from public.foods where day_id=$1 and active and name='Gà mới'",
+        [day.id],
+      )
+    ).rows[0].id,
+  ).toBe(chicken.id);
+  const audit = (
+    await db.query<any>(
+      "select * from public.audit_events where entity_id=$1 and kind='order.menu.change'",
+      [placed.id],
+    )
+  ).rows;
+  expect(audit).toHaveLength(1);
+  expect(audit[0].before.items).toEqual(placed.items);
+  expect(audit[0].after.items).toEqual(updated.items);
+  expect(audit[0].subject_id).toBe(employee);
+  expect(
+    (
+      await db.query<any>(
+        "select * from private.deliveries where event_id=$1",
+        [audit[0].id],
+      )
+    ).rows.length,
+  ).toBeGreaterThan(0);
+});
+it("OCR exact-name republish retains IDs and clear checkbox cancels the entire week idempotently", async () => {
+  await actor(admin);
+  const dates = ["2030-06-10", "2030-06-11"];
+  await command("menu.publish", {
+    days: dates.map((date) => ({
+      date,
+      foods: [{ name: "Cơm", unitPrice: 35000 }],
+    })),
+    notifyChat: false,
+  });
+  const days = (
+    await db.query<any>(
+      "select * from public.days where date=any($1::date[]) order by date",
+      [dates],
+    )
+  ).rows;
+  const food = (
+    await db.query<any>(
+      "select * from public.foods where day_id=$1 and active",
+      [days[0].id],
+    )
+  ).rows[0];
+  for (const day of days) {
+    const f = (
+      await db.query<any>(
+        "select * from public.foods where day_id=$1 and active",
+        [day.id],
+      )
+    ).rows[0];
+    await command("order.save", {
+      dayId: day.id,
+      memberId: admin,
+      items: [{ menuItemId: f.id, quantity: 1, note: "" }],
+    });
+  }
+  await command("menu.publish", {
+    days: [{ date: dates[0], foods: [{ name: "Cơm", unitPrice: 45000 }] }],
+    notifyChat: false,
+  });
+  expect(
+    (
+      await db.query<any>(
+        "select id from public.foods where day_id=$1 and active",
+        [days[0].id],
+      )
+    ).rows[0].id,
+  ).toBe(food.id);
+  const request = crypto.randomUUID();
+  const payload = {
+    weekStart: dates[0],
+    days: [{ date: dates[0], foods: [{ name: "Món mới", unitPrice: 35000 }] }],
+    clearExistingOrders: true,
+    notifyChat: false,
+  };
+  const locked = await command(
+    "day.lock",
+    { dayId: days[1].id, locked: true, reason: "Lock guard test" },
+    days[1].version,
+  );
+  await expect(command("menu.publish", payload)).rejects.toThrow(/LOCKED/);
+  expect(
+    (
+      await db.query<any>(
+        "select status from public.orders where day_id=any($1::uuid[])",
+        [days.map((d) => d.id)],
+      )
+    ).rows.every((order) => order.status === "active"),
+  ).toBe(true);
+  await command(
+    "day.lock",
+    { dayId: days[1].id, locked: false, reason: "Unlock guard test" },
+    locked.version,
+  );
+  await expect(
+    command("menu.publish", {
+      ...payload,
+      expectedDayVersions: { [dates[0]]: days[0].version },
+    }),
+  ).rejects.toThrow(/CONFLICT/);
+  expect(
+    (
+      await db.query<any>(
+        "select status from public.orders where day_id=any($1::uuid[])",
+        [days.map((d) => d.id)],
+      )
+    ).rows.every((order) => order.status === "active"),
+  ).toBe(true);
+  const first = await command("menu.publish", payload, 0, request);
+  expect(await command("menu.publish", payload, 0, request)).toEqual(first);
+  const orders = (
+    await db.query<any>(
+      "select * from public.orders where day_id=any($1::uuid[])",
+      [days.map((d) => d.id)],
+    )
+  ).rows;
+  expect(orders.every((o) => o.status === "cancelled")).toBe(true);
+  expect(orders.every((o) => o.items.length === 1)).toBe(true);
+});
+it("employees can read settled week dates without finance exposure and helpers reject direct calls", async () => {
+  await db.query(
+    "insert into public.settlements(week_start,version,state,snapshot) values('2030-07-01',1,'settled','{}')",
+  );
+  await actor(employee);
+  await db.exec("set role authenticated");
+  try {
+    const s = (await db.query<any>("select public.snapshot() s")).rows[0].s;
+    expect(s.settledWeeks).toContain("2030-07-01");
+    await expect(
+      db.query(
+        "select private.menu_order_change(gen_random_uuid(),'[]','reason',gen_random_uuid())",
+      ),
+    ).rejects.toThrow(/permission denied/);
+  } finally {
+    await db.exec("reset role");
+  }
 });

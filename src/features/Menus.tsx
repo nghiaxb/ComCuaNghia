@@ -1,21 +1,32 @@
 import ImageUpload from "./ImageUpload";
+import WeekPicker from "./WeekPicker";
 import { useState } from "react";
 import { Plus, Trash2, Pencil } from "lucide-react";
 import type { PageProps } from "./common";
 import type { Day } from "../../shared/contracts";
 import { Field, vnd } from "./common";
-import { addDays, weekStart, vietnamDate } from "../../shared/time";
+import {
+  addDays,
+  defaultMenuWeek,
+  weekLabel,
+  weekStart,
+} from "../../shared/time";
 import { ocr } from "../lib/api";
 export default function Menus({ data, mutate, busy, readOnly }: PageProps) {
-  const [week, setWeek] = useState(weekStart(vietnamDate()));
+  const [week, setWeek] = useState(defaultMenuWeek());
   const [draftId, setDraftId] = useState<string | null>(null);
   const [draftVersion, setDraftVersion] = useState(0);
   const [sourceVersions, setSourceVersions] = useState<Record<string, number>>(
     {},
   );
   const [notify, setNotify] = useState(true);
+  const [clearExistingOrders, setClearExistingOrders] = useState(false);
   const [draft, setDraft] = useState<
-    { date: string; foods: { name: string; unitPrice: number }[] }[]
+    {
+      date: string;
+      sourceVersion?: number;
+      foods: { id?: string; name: string; unitPrice: number }[];
+    }[]
   >([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -28,6 +39,21 @@ export default function Menus({ data, mutate, busy, readOnly }: PageProps) {
         data.foods.some((food) => food.day_id === day.id && food.active),
     )
     .sort((a, b) => a.date.localeCompare(b.date));
+  const availableWeeks = [
+    ...data.days.map((day) => weekStart(day.date)),
+    ...data.drafts.map((draft) => draft.week_start),
+  ];
+  const weekDayIds = new Set(
+    data.days
+      .filter((day) => weekStart(day.date) === week)
+      .map((day) => day.id),
+  );
+  const affectedOrders = data.orders.filter(
+    (order) => order.status === "active" && weekDayIds.has(order.day_id),
+  ).length;
+  const modifiesPublished = data.days.some((day) =>
+    draft.some((draftDay) => draftDay.date === day.date),
+  );
   const dateLabel = (date: string) =>
     new Date(date + "T12:00:00+07:00").toLocaleDateString("vi-VN", {
       weekday: "long",
@@ -41,6 +67,7 @@ export default function Menus({ data, mutate, busy, readOnly }: PageProps) {
     setDraftId(null);
     setDraftVersion(0);
     setSourceVersions({});
+    setClearExistingOrders(false);
   };
 
   async function upload(file?: File) {
@@ -71,6 +98,7 @@ export default function Menus({ data, mutate, busy, readOnly }: PageProps) {
         week,
         data.settings.data.defaultPrice,
       );
+      setClearExistingOrders(false);
       setSourceVersions({});
       setDraft(result.days);
       setDraftId(result.draftId);
@@ -94,27 +122,24 @@ export default function Menus({ data, mutate, busy, readOnly }: PageProps) {
         </div>
       </div>
       <section className="panel">
-        <Field label="Tuần bắt đầu (thứ Hai)">
-          <input
-            type="date"
-            value={week}
-            onChange={(e) => {
-              if (!e.target.value) return;
-              setSourceVersions({});
-              setWeek(weekStart(e.target.value));
-              setRemoving(null);
-              setDraft([]);
-              setDraftId(null);
-              setDraftVersion(0);
-            }}
-          />
-        </Field>
+        <WeekPicker
+          label="Tuần menu"
+          value={week}
+          availableWeeks={availableWeeks}
+          disabled={loading || busy}
+          onChange={(selectedWeek) => {
+            if (loading) return;
+            setWeek(selectedWeek);
+            setRemoving(null);
+            clearDraft();
+          }}
+        />
       </section>
       <section className="panel" aria-label="Menu đã công bố">
         <h2>Menu đã công bố</h2>
         <p className="muted">
-          Chọn Sửa để đổi món hoặc giá. Xoá menu sẽ gỡ món khỏi danh sách đặt,
-          giữ nguyên các đơn đã đặt.
+          Chọn Sửa để đổi món hoặc giá. Xoá menu sẽ huỷ các đơn đang mở của ngày
+          đó; lịch sử vẫn được giữ.
         </p>
         {!published.length && <p>Tuần này chưa có menu đã công bố.</p>}
         {published.map((day) => (
@@ -135,8 +160,9 @@ export default function Menus({ data, mutate, busy, readOnly }: PageProps) {
             <div className="form-row">
               <button
                 className="secondary"
-                disabled={busy || readOnly || day.locked}
+                disabled={busy || readOnly || loading || day.locked}
                 onClick={() => {
+                  setClearExistingOrders(false);
                   setDraftId(null);
                   setDraftVersion(0);
                   setSourceVersions({ [day.date]: day.version });
@@ -146,6 +172,7 @@ export default function Menus({ data, mutate, busy, readOnly }: PageProps) {
                       foods: data.foods
                         .filter((food) => food.day_id === day.id && food.active)
                         .map((food) => ({
+                          id: food.id,
                           name: food.name,
                           unitPrice: food.unit_price,
                         })),
@@ -162,7 +189,7 @@ export default function Menus({ data, mutate, busy, readOnly }: PageProps) {
               </button>
               <button
                 className="secondary"
-                disabled={busy || readOnly || day.locked}
+                disabled={busy || readOnly || loading || day.locked}
                 onClick={() => {
                   setRemoving(day);
                   setReason("");
@@ -177,8 +204,14 @@ export default function Menus({ data, mutate, busy, readOnly }: PageProps) {
           <div className="notice" role="group" aria-label="Xác nhận xoá menu">
             <h3>Gỡ menu {dateLabel(removing.date)}?</h3>
             <p>
-              Các đơn đã đặt và thông tin tính tiền được giữ nguyên. Thao tác có
-              nhật ký và thông báo Google Chat theo cấu hình.
+              {
+                data.orders.filter(
+                  (order) =>
+                    order.day_id === removing.id && order.status === "active",
+                ).length
+              }{" "}
+              đơn đang mở của ngày này sẽ bị huỷ. Lịch sử đặt món vẫn được giữ;
+              thay đổi được ghi nhật ký và thông báo Google Chat.
             </p>
             <Field label="Lý do gỡ menu">
               <input
@@ -201,7 +234,11 @@ export default function Menus({ data, mutate, busy, readOnly }: PageProps) {
               onClick={async () => {
                 const result = await mutate(
                   "menu.withdraw",
-                  { dayId: removing.id, reason: reason.trim() },
+                  {
+                    dayId: removing.id,
+                    reason: reason.trim(),
+                    cancelExistingOrders: true,
+                  },
                   removing.version,
                 );
                 if (result) setRemoving(null);
@@ -219,7 +256,9 @@ export default function Menus({ data, mutate, busy, readOnly }: PageProps) {
             <div className="form-row" key={d.id}>
               <button
                 className="secondary"
+                disabled={loading || busy}
                 onClick={() => {
+                  setClearExistingOrders(false);
                   setSourceVersions(
                     Object.fromEntries(
                       d.days
@@ -233,7 +272,7 @@ export default function Menus({ data, mutate, busy, readOnly }: PageProps) {
                   setDraftVersion(d.version);
                 }}
               >
-                Mở bản nháp tuần {d.week_start}
+                Mở bản nháp tuần {weekLabel(d.week_start)}
               </button>
               <button
                 className="secondary"
@@ -271,8 +310,9 @@ export default function Menus({ data, mutate, busy, readOnly }: PageProps) {
         )}
         <button
           className="text-button"
-          disabled={readOnly}
+          disabled={readOnly || loading || busy}
           onClick={() => {
+            setClearExistingOrders(false);
             setSourceVersions({});
             setDraftId(null);
             setDraftVersion(0);
@@ -427,20 +467,37 @@ export default function Menus({ data, mutate, busy, readOnly }: PageProps) {
           <label className="checkbox">
             <input
               type="checkbox"
-              checked={notify}
+              checked={modifiesPublished || notify}
+              disabled={modifiesPublished || busy || readOnly}
               onChange={(e) => setNotify(e.target.checked)}
             />{" "}
             Thông báo Google Chat
           </label>
           <p className="fine">
-            Cơm thứ Hai chỉ thông báo khi bạn chọn ở đây. Menu mới không xóa đơn
-            đã đặt.
+            {modifiesPublished
+              ? "Mọi thay đổi menu đã công bố đều thông báo Google Chat."
+              : "Khi công bố lần đầu, thông báo cơm thứ Hai theo lựa chọn ở đây."}
+          </p>
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={clearExistingOrders}
+              disabled={busy || readOnly}
+              onChange={(e) => setClearExistingOrders(e.target.checked)}
+            />{" "}
+            Xóa các đơn đã đặt trong tuần này
+          </label>
+          <p className="fine">
+            {clearExistingOrders
+              ? `${affectedOrders} đơn đang hoạt động trong toàn tuần ${weekLabel(week)} sẽ bị xóa khi công bố, kể cả ngày không có trong bản nháp.`
+              : "Không xoá toàn bộ đơn. Đổi tên/bỏ món sẽ huỷ phần đặt liên quan; đổi giá sẽ cập nhật giá cho đơn đang mở."}
           </p>
           <button
             className="primary"
             disabled={
               busy ||
               readOnly ||
+              loading ||
               draft.some(
                 (d) =>
                   !d.foods.length ||
@@ -453,9 +510,18 @@ export default function Menus({ data, mutate, busy, readOnly }: PageProps) {
               )
             }
             onClick={async () => {
+              if (
+                clearExistingOrders &&
+                !window.confirm(
+                  `Công bố menu và xóa ${affectedOrders} đơn đang hoạt động trong toàn tuần ${weekLabel(week)}?`,
+                )
+              )
+                return;
               const result = await mutate("menu.publish", {
+                weekStart: week,
+                clearExistingOrders,
                 days: draft,
-                notifyChat: notify,
+                notifyChat: modifiesPublished || notify,
                 expectedDayVersions: sourceVersions,
               });
               if (result) clearDraft();

@@ -103,6 +103,7 @@ export type Settings = {
   chatEnabled: boolean;
 };
 export type Snapshot = {
+  settledWeeks?: string[];
   recipients?: { id: string; display_name: string }[];
   drafts: {
     id: string;
@@ -110,7 +111,7 @@ export type Snapshot = {
     days: {
       date: string;
       sourceVersion?: number;
-      foods: { name: string; unitPrice: number }[];
+      foods: { id?: string; name: string; unitPrice: number }[];
     }[];
     version: number;
   }[];

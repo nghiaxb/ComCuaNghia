@@ -3,6 +3,9 @@ test("OCR accepts drop and clipboard images once and leaves pasted text alone", 
   page,
 }) => {
   await page.goto("/tests/fixtures/features.html");
+  await page
+    .getByRole("button", { name: "Tuần hiện tại", exact: true })
+    .click();
   const zone = page
     .getByRole("region", { name: "Ảnh menu OCR" })
     .locator("label");
@@ -66,6 +69,9 @@ test("employee edits an existing proxy cart with recipient reason and optimistic
   page,
 }) => {
   await page.goto("/tests/fixtures/features.html");
+  await page
+    .getByRole("button", { name: "Tuần hiện tại", exact: true })
+    .click();
   await page.getByLabel("Đặt cơm cho").selectOption("colleague");
   await expect(page.getByLabel("Ghi chú món")).toHaveValue("Ít cơm");
   await expect(
@@ -89,6 +95,9 @@ test("employee edits an existing proxy cart with recipient reason and optimistic
 });
 test("manual day lock disables proxy cart", async ({ page }) => {
   await page.goto("/tests/fixtures/features.html?locked");
+  await page
+    .getByRole("button", { name: "Tuần hiện tại", exact: true })
+    .click();
   await page.getByLabel("Đặt cơm cho").selectOption("colleague");
   await expect(
     page.getByRole("button", { name: "Lưu thay đổi" }),
@@ -100,6 +109,9 @@ test("manual day lock disables proxy cart", async ({ page }) => {
 
 test("snapshot refresh preserves unsaved proxy edits", async ({ page }) => {
   await page.goto("/tests/fixtures/features.html");
+  await page
+    .getByRole("button", { name: "Tuần hiện tại", exact: true })
+    .click();
   await page.getByLabel("Đặt cơm cho").selectOption("colleague");
   await expect(page.getByLabel("Ghi chú món")).toHaveValue("Ít cơm");
   await page.getByLabel("Ghi chú món").fill("Thêm rau");
@@ -182,6 +194,9 @@ test("removing a mistaken menu image prevents submitting it", async ({
   page,
 }) => {
   await page.goto("/tests/fixtures/features.html");
+  await page
+    .getByRole("button", { name: "Tuần hiện tại", exact: true })
+    .click();
   await page.getByLabel("Chọn ảnh menu", { exact: true }).setInputFiles({
     name: "wrong.png",
     mimeType: "image/png",
@@ -201,6 +216,9 @@ test("published menu is visible and withdrawal requires an explicit reason and c
   page,
 }) => {
   await page.goto("/tests/fixtures/features.html?menus");
+  await page
+    .getByRole("button", { name: "Tuần hiện tại", exact: true })
+    .click();
   const published = page.getByRole("region", { name: "Menu đã công bố" });
   await expect(published).toBeVisible();
   await published.getByRole("button", { name: "Xoá menu ngày này" }).click();
@@ -223,6 +241,9 @@ test("published menu can be loaded for editing with row removal and draft discar
 }) => {
   await page.goto("/tests/fixtures/features.html?menus");
   await page
+    .getByRole("button", { name: "Tuần hiện tại", exact: true })
+    .click();
+  await page
     .getByRole("region", { name: "Menu đã công bố" })
     .getByRole("button", { name: "Sửa menu ngày này" })
     .click();
@@ -241,6 +262,9 @@ test("editing a published day carries its source version and clears the editor a
   page,
 }) => {
   await page.goto("/tests/fixtures/features.html?menus");
+  await page
+    .getByRole("button", { name: "Tuần hiện tại", exact: true })
+    .click();
   await page.getByRole("button", { name: "Sửa menu ngày này" }).click();
   await page.getByRole("button", { name: "Công bố menu", exact: true }).click();
   const command = JSON.parse(
@@ -257,6 +281,9 @@ test("saving and reopening published edits retains their original version", asyn
   page,
 }) => {
   await page.goto("/tests/fixtures/features.html?menus&savedMenu");
+  await page
+    .getByRole("button", { name: "Tuần hiện tại", exact: true })
+    .click();
   await page.getByRole("button", { name: "Sửa menu ngày này" }).click();
   await page.getByRole("button", { name: "Lưu bản nháp", exact: true }).click();
   const saved = JSON.parse(

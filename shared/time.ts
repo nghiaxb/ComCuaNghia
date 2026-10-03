@@ -24,3 +24,17 @@ export const addDays = (day: string, n: number) =>
   new Date(Date.parse(day + "T00:00:00Z") + n * 86400000)
     .toISOString()
     .slice(0, 10);
+
+/** OCR and menu preparation target the coming week on Vietnam weekends. */
+export function defaultMenuWeek(now = new Date()) {
+  const day = vietnamDate(now);
+  const monday = weekStart(day);
+  const weekday = new Date(day + "T00:00:00Z").getUTCDay();
+  return weekday === 0 || weekday === 6 ? addDays(monday, 7) : monday;
+}
+
+export function weekLabel(week: string) {
+  const format = (day: string) => day.split("-").reverse().join("/");
+  const monday = weekStart(week);
+  return `${format(monday)} – ${format(addDays(monday, 4))}`;
+}

@@ -7,17 +7,28 @@ export type ChatEvent = {
   kind: string;
   afterCutoff?: boolean;
   before?: {
-    items?: { name: string; quantity: number; note: string }[];
+    items?: {
+      name: string;
+      quantity: number;
+      note: string;
+      unitPrice?: number;
+    }[];
     status?: string;
   };
   after?: {
-    items?: { name: string; quantity: number; note: string }[];
+    items?: {
+      name: string;
+      quantity: number;
+      note: string;
+      unitPrice?: number;
+    }[];
     status?: string;
   };
   menu?: { date: string; foods: { name: string; unitPrice: number }[] }[];
 };
 const labels: Record<string, string> = {
   "order.save": "Cập nhật đơn cơm",
+  "order.menu.change": "Đơn cập nhật theo menu",
   "order.cancel": "Hủy đơn cơm",
   "day.lock": "Thay đổi khóa ngày",
   "menu.publish": "Thực đơn mới",
@@ -36,7 +47,7 @@ const list = (o: ChatEvent["after"]) =>
     : o?.items
         ?.map(
           (i) =>
-            `${clean(i.name)} ×${i.quantity}${i.note ? " · " + clean(i.note) : ""}`,
+            `${clean(i.name)} ×${i.quantity}${i.note ? " · " + clean(i.note) : ""}${i.unitPrice !== undefined ? " · " + i.unitPrice.toLocaleString("vi-VN") + " ₫/suất" : ""}`,
         )
         .join("\n") || "Chưa đặt";
 export function formatChat(p: ChatEvent, appUrl: string) {
@@ -50,7 +61,17 @@ export function formatChat(p: ChatEvent, appUrl: string) {
     lines.push("Trước: " + list(p.before), "Sau: " + list(p.after));
   if (p.menu)
     for (const d of p.menu)
-      lines.push(d.date, ...d.foods.map((f) => "• " + clean(f.name)));
+      lines.push(
+        d.date,
+        ...d.foods.map(
+          (f) =>
+            "• " +
+            clean(f.name) +
+            " · " +
+            f.unitPrice.toLocaleString("vi-VN") +
+            " ₫/suất",
+        ),
+      );
   lines.push(appUrl, `Mã: ${p.eventId}`);
   return { text: lines.join("\n").slice(0, 28000) };
 }

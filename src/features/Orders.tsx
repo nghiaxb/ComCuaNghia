@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 import { ShoppingBag, Plus, Minus, LockKeyhole, Clock3 } from "lucide-react";
 import type { PageProps } from "./common";
 import { Empty, vnd, Field } from "./common";
-import { vietnamDate } from "../../shared/time";
+import WeekPicker from "./WeekPicker";
+import { defaultMenuWeek, weekStart, vietnamDate } from "../../shared/time";
 export default function Orders({
   data,
   mutate,
@@ -13,11 +14,15 @@ export default function Orders({
   readOnly,
   loadRecipientOrder = proxyOrder,
 }: PageProps & { loadRecipientOrder?: typeof proxyOrder }) {
-  const [date, setDate] = useState(
-    data.days.find((d) => d.date >= vietnamDate())?.date ??
-      data.days[0]?.date ??
-      vietnamDate(),
-  );
+  const [week, setWeek] = useState(defaultMenuWeek());
+  const days = data.days
+    .filter((d) => weekStart(d.date) === week)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const [selectedDate, setDate] = useState(vietnamDate());
+  const date = days.some((d) => d.date === selectedDate)
+    ? selectedDate
+    : (days[0]?.date ?? week);
+  const settled = data.settledWeeks?.includes(week) ?? false;
   const [memberId, setMemberId] = useState(data.member.id);
   const [reason, setReason] = useState("");
   const proxy = memberId !== data.member.id;
@@ -69,7 +74,12 @@ export default function Orders({
     };
   }, [proxy, day?.id, memberId, localOrder?.version, data.orders, readOnly]);
   const blocked =
-    busy || readOnly || day?.locked || recipientLoading || !!recipientError;
+    busy ||
+    readOnly ||
+    day?.locked ||
+    settled ||
+    recipientLoading ||
+    !!recipientError;
   const [cart, setCart] = useState<
     { menuItemId: string; quantity: number; note: string }[]
   >([]);
@@ -86,12 +96,13 @@ export default function Orders({
       ),
     [day?.id, memberId, order?.id, order?.version],
   );
-  const foods = data.foods.filter((f) => f.day_id === day?.id);
+  const foods = data.foods.filter((f) => f.day_id === day?.id && f.active);
+  const orderedItems = order?.status === "active" ? order.items : [];
   const total = cart.reduce(
     (sum, i) =>
       sum +
       i.quantity *
-        (order?.items.find((o) => o.menuItemId === i.menuItemId)?.unitPrice ??
+        (orderedItems.find((o) => o.menuItemId === i.menuItemId)?.unitPrice ??
           foods.find((f) => f.id === i.menuItemId)?.unit_price ??
           0),
     0,
@@ -134,8 +145,14 @@ export default function Orders({
           <MealArt />
         </div>
       </section>
+      <WeekPicker
+        value={week}
+        onChange={setWeek}
+        availableWeeks={data.days.map((d) => weekStart(d.date))}
+        label="Tuần đặt cơm"
+      />
       <div className="days">
-        {data.days.slice(-15).map((d) => (
+        {days.map((d) => (
           <button
             key={d.id}
             className={date === d.date ? "selected" : ""}
@@ -152,7 +169,7 @@ export default function Orders({
             {d.locked && <LockKeyhole size={12} />}
           </button>
         ))}
-        {!data.days.length && (
+        {!days.length && (
           <Field label="Ngày ăn">
             <input
               type="date"
@@ -168,6 +185,12 @@ export default function Orders({
             <h2>Thực đơn trong ngày</h2>
             <span>{foods.length} món</span>
           </div>
+          {settled && (
+            <div className="notice">
+              Tuần này đã quyết toán. Người quản lý cần mở lại kỳ trước khi thay
+              đổi đơn.
+            </div>
+          )}
           {day?.locked && (
             <div className="notice">
               Ngày này đã khóa. Người điều phối cần mở khóa trước khi thay đổi
@@ -256,16 +279,46 @@ export default function Orders({
               {recipientError}
             </p>
           )}
+          {order && order.status !== "active" && (
+            <section aria-label="Đơn đã hủy">
+              <h3>Đơn đã hủy</h3>
+              {order.items.map((item) => (
+                <p key={item.menuItemId}>
+                  {item.name} ×{item.quantity} · {vnd(item.unitPrice)} / suất
+                  {item.note ? ` · ${item.note}` : ""}
+                </p>
+              ))}
+              <strong>
+                {vnd(
+                  order.items.reduce(
+                    (sum, item) => sum + item.quantity * item.unitPrice,
+                    0,
+                  ),
+                )}
+              </strong>
+            </section>
+          )}
           {!cart.length ? (
             <div className="cart-empty">Chọn một món ngon để bắt đầu nhé.</div>
           ) : (
             cart.map((i) => (
               <div className="cart-item" key={i.menuItemId}>
                 <strong>
-                  {foods.find((f) => f.id === i.menuItemId)?.name ??
-                    order?.items.find((f) => f.menuItemId === i.menuItemId)
-                      ?.name}
+                  {orderedItems.find((f) => f.menuItemId === i.menuItemId)
+                    ?.name ?? foods.find((f) => f.id === i.menuItemId)?.name}
                 </strong>
+                <small>
+                  {vnd(
+                    orderedItems.find((f) => f.menuItemId === i.menuItemId)
+                      ?.unitPrice ??
+                      foods.find((f) => f.id === i.menuItemId)?.unit_price ??
+                      0,
+                  )}{" "}
+                  / suất
+                  {!foods.some((f) => f.id === i.menuItemId)
+                    ? " · Món đã đặt, không còn trong menu"
+                    : ""}
+                </small>
                 <div className="quantity">
                   <button
                     aria-label="Giảm"

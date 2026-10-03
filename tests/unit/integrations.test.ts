@@ -185,3 +185,22 @@ it("names the withdrawn menu date and reason in the Chat message", () => {
   expect(out.text).toContain("Ngày: 2026-10-05");
   expect(out.text).toContain("Lý do: Menu nhầm");
 });
+it("menu-driven order changes show both prices and quantities in Chat", () => {
+  const text = formatChat(
+    {
+      eventId: "event",
+      kind: "order.menu.change",
+      subject: "Nhân viên",
+      before: {
+        items: [{ name: "Gà", quantity: 2, note: "", unitPrice: 35000 }],
+      },
+      after: {
+        items: [{ name: "Gà", quantity: 2, note: "", unitPrice: 45000 }],
+      },
+    },
+    "https://app.test",
+  ).text;
+  expect(text).toContain("35.000");
+  expect(text).toContain("45.000");
+  expect(text).toContain("Đơn cập nhật theo menu");
+});

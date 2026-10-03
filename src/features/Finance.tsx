@@ -3,12 +3,13 @@ import { QRPay } from "vietnam-qr-pay";
 import QRCode from "qrcode";
 import type { PageProps } from "./common";
 import { vnd, Person, Field, Empty } from "./common";
-import { weekStart, vietnamDate } from "../../shared/time";
+import WeekPicker from "./WeekPicker";
+import { weekStart, defaultMenuWeek, vietnamDate } from "../../shared/time";
 export default function Finance({ data, mutate, busy, readOnly }: PageProps) {
   const [adjustMember, setAdjustMember] = useState(data.member.id);
   const [adjustAmount, setAdjustAmount] = useState(0);
   const [adjustNote, setAdjustNote] = useState("");
-  const [week, setWeek] = useState(weekStart(vietnamDate()));
+  const [week, setWeek] = useState(defaultMenuWeek());
   const [qr, setQr] = useState("");
   const [totals, setTotals] = useState<Record<string, number>>({});
   const [covered, setCovered] = useState<Record<string, string[]>>({});
@@ -18,6 +19,14 @@ export default function Finance({ data, mutate, busy, readOnly }: PageProps) {
   const [csvError, setCsvError] = useState("");
   const finance =
     data.member.role === "admin" || data.member.can_manage_finance;
+  const visibleEntries = data.entries.filter(
+    (e) => finance || e.member_id === data.member.id,
+  );
+  const weekEntries = visibleEntries.filter(
+    (e) =>
+      (e.week_start ?? weekStart(vietnamDate(new Date(e.created_at)))) === week,
+  );
+  const settled = data.settledWeeks?.includes(week) ?? false;
   const mine = data.entries
     .filter((e) => e.member_id === data.member.id)
     .reduce((s, e) => s + Number(e.amount), 0);
@@ -60,7 +69,7 @@ export default function Finance({ data, mutate, busy, readOnly }: PageProps) {
         '"';
       const text =
         "\uFEFFThành viên,Số tiền,Loại,Ghi chú\n" +
-        data.entries
+        weekEntries
           .map((e) =>
             [
               data.members.find((m) => m.id === e.member_id)?.display_name ??
@@ -77,7 +86,7 @@ export default function Finance({ data, mutate, busy, readOnly }: PageProps) {
       a.href = URL.createObjectURL(
         new Blob([text], { type: "text/csv;charset=utf-8" }),
       );
-      a.download = "cong-no.csv";
+      a.download = `cong-no-${week}.csv`;
       a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     } catch {
@@ -97,9 +106,21 @@ export default function Finance({ data, mutate, busy, readOnly }: PageProps) {
         </button>
       </div>
       {csvError && <p className="error">{csvError}</p>}
+      <WeekPicker
+        value={week}
+        onChange={setWeek}
+        availableWeeks={[
+          ...data.days.map((d) => weekStart(d.date)),
+          ...visibleEntries.map(
+            (e) =>
+              e.week_start ?? weekStart(vietnamDate(new Date(e.created_at))),
+          ),
+        ]}
+        label="Tuần công nợ"
+      />
       <div className="stats">
         <article>
-          <span>Số dư của bạn</span>
+          <span>Số dư của bạn · tất cả các tuần</span>
           <strong>{vnd(mine)}</strong>
         </article>
         <article>
@@ -114,8 +135,8 @@ export default function Finance({ data, mutate, busy, readOnly }: PageProps) {
           </strong>
         </article>
         <article>
-          <span>Tổng số bút toán</span>
-          <strong>{data.entries.length}</strong>
+          <span>Bút toán tuần đã chọn</span>
+          <strong>{weekEntries.length}</strong>
         </article>
       </div>
       <div className="two-col">
@@ -207,12 +228,7 @@ export default function Finance({ data, mutate, busy, readOnly }: PageProps) {
         <section className="panel">
           <div className="section-title">
             <h2>Quyết toán tuần</h2>
-            <input
-              aria-label="Tuần quyết toán"
-              type="date"
-              value={week}
-              onChange={(e) => setWeek(weekStart(e.target.value))}
-            />
+            <span>{settled ? "Đã quyết toán" : "Chưa quyết toán"}</span>
           </div>
           {days.map((d) => {
             const orders = data.orders.filter(
@@ -279,7 +295,11 @@ export default function Finance({ data, mutate, busy, readOnly }: PageProps) {
             <button
               className="primary"
               disabled={
-                busy || readOnly || !days.length || days.some((d) => !d.locked)
+                busy ||
+                readOnly ||
+                settled ||
+                !days.length ||
+                days.some((d) => !d.locked)
               }
               onClick={() => {
                 if (confirm("Quyết toán tuần và ghi công nợ?"))
@@ -351,8 +371,41 @@ export default function Finance({ data, mutate, busy, readOnly }: PageProps) {
         </section>
       )}
       <section className="panel">
-        <h2>Sổ công nợ</h2>
-        {!data.entries.length ? (
+        <h2>
+          {finance ? "Chi tiết đơn trong tuần" : "Bữa ăn của bạn trong tuần"}
+        </h2>
+        {data.orders
+          .filter(
+            (o) =>
+              days.some((d) => d.id === o.day_id) &&
+              (finance || o.member_id === data.member.id),
+          )
+          .map((o) => (
+            <div className="order-row" key={o.id}>
+              <span>
+                {data.days.find((d) => d.id === o.day_id)?.date} ·{" "}
+                {o.status === "active" ? "Đã đặt" : "Đã hủy"}
+              </span>
+              {finance && (
+                <Person
+                  name={
+                    data.members.find((m) => m.id === o.member_id)
+                      ?.display_name ?? "Thành viên"
+                  }
+                />
+              )}
+              <span>
+                {o.items.map((i) => `${i.name} ×${i.quantity}`).join(", ")}
+              </span>
+              <strong>
+                {vnd(o.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0))}
+              </strong>
+            </div>
+          ))}
+      </section>
+      <section className="panel">
+        <h2>Sổ công nợ tuần đã chọn</h2>
+        {!weekEntries.length ? (
           <Empty text="Chưa phát sinh bút toán công nợ." />
         ) : (
           <div className="table-wrap">
@@ -366,7 +419,7 @@ export default function Finance({ data, mutate, busy, readOnly }: PageProps) {
                 </tr>
               </thead>
               <tbody>
-                {data.entries.map((e) => (
+                {weekEntries.map((e) => (
                   <tr key={e.id}>
                     <td>
                       {data.members.find((m) => m.id === e.member_id)
