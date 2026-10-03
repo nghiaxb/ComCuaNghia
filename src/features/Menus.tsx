@@ -1,3 +1,4 @@
+import Button from "../components/ui/Button";
 import ConfirmDialog from "./ConfirmDialog";
 import ImageUpload from "./ImageUpload";
 import WeekPicker from "./WeekPicker";
@@ -159,7 +160,7 @@ export default function Menus({ data, mutate, busy, readOnly }: PageProps) {
                 ))}
             </ul>
             <div className="form-row">
-              <button
+              <Button
                 className="secondary"
                 disabled={busy || readOnly || loading || day.locked}
                 onClick={() => {
@@ -187,8 +188,8 @@ export default function Menus({ data, mutate, busy, readOnly }: PageProps) {
                 }}
               >
                 <Pencil size={15} /> Sửa menu ngày này
-              </button>
-              <button
+              </Button>
+              <Button
                 className="secondary"
                 disabled={busy || readOnly || loading || day.locked}
                 onClick={() => {
@@ -197,7 +198,7 @@ export default function Menus({ data, mutate, busy, readOnly }: PageProps) {
                 }}
               >
                 <Trash2 size={15} /> Xoá menu ngày này
-              </button>
+              </Button>
             </div>
           </article>
         ))}
@@ -223,31 +224,33 @@ export default function Menus({ data, mutate, busy, readOnly }: PageProps) {
                 onChange={(e) => setReason(e.target.value)}
               />
             </Field>
-            <button
+            <Button
               className="secondary"
               disabled={busy}
               onClick={() => setRemoving(null)}
             >
               Quay lại
-            </button>
-            <button
+            </Button>
+            <Button
               className="primary danger"
               disabled={busy || readOnly || !reason.trim()}
-              onClick={async () => {
-                const result = await mutate(
-                  "menu.withdraw",
-                  {
-                    dayId: removing.id,
-                    reason: reason.trim(),
-                    cancelExistingOrders: true,
-                  },
-                  removing.version,
-                );
-                if (result) setRemoving(null);
+              onClick={() => {
+                void (async () => {
+                  const result = await mutate(
+                    "menu.withdraw",
+                    {
+                      dayId: removing.id,
+                      reason: reason.trim(),
+                      cancelExistingOrders: true,
+                    },
+                    removing.version,
+                  );
+                  if (result) setRemoving(null);
+                })();
               }}
             >
               Xác nhận gỡ menu
-            </button>
+            </Button>
           </ConfirmDialog>
         )}
       </section>
@@ -256,7 +259,7 @@ export default function Menus({ data, mutate, busy, readOnly }: PageProps) {
         {data.drafts.length ? (
           data.drafts.map((d) => (
             <div className="form-row" key={d.id}>
-              <button
+              <Button
                 className="secondary"
                 disabled={loading || busy}
                 onClick={() => {
@@ -275,27 +278,29 @@ export default function Menus({ data, mutate, busy, readOnly }: PageProps) {
                 }}
               >
                 Mở bản nháp tuần {weekLabel(d.week_start)}
-              </button>
-              <button
+              </Button>
+              <Button
                 className="secondary"
                 disabled={busy || readOnly}
-                onClick={async () => {
-                  if (
-                    !window.confirm(
-                      `Xoá bản nháp tuần ${d.week_start}? Menu đã công bố và đơn cơm vẫn được giữ.`,
+                onClick={() => {
+                  void (async () => {
+                    if (
+                      !window.confirm(
+                        `Xoá bản nháp tuần ${d.week_start}? Menu đã công bố và đơn cơm vẫn được giữ.`,
+                      )
                     )
-                  )
-                    return;
-                  const result = await mutate(
-                    "menu.draft.delete",
-                    { id: d.id },
-                    d.version,
-                  );
-                  if (result && draftId === d.id) clearDraft();
+                      return;
+                    const result = await mutate(
+                      "menu.draft.delete",
+                      { id: d.id },
+                      d.version,
+                    );
+                    if (result && draftId === d.id) clearDraft();
+                  })();
                 }}
               >
                 <Trash2 size={15} /> Xoá bản nháp
-              </button>
+              </Button>
             </div>
           ))
         ) : (
@@ -310,7 +315,7 @@ export default function Menus({ data, mutate, busy, readOnly }: PageProps) {
             {error}
           </p>
         )}
-        <button
+        <Button
           className="text-button"
           disabled={readOnly || loading || busy}
           onClick={() => {
@@ -329,7 +334,7 @@ export default function Menus({ data, mutate, busy, readOnly }: PageProps) {
           }}
         >
           Hoặc nhập menu thủ công
-        </button>
+        </Button>
       </div>
       {draft.map((d, di) => (
         <section
@@ -383,7 +388,7 @@ export default function Menus({ data, mutate, busy, readOnly }: PageProps) {
                   }
                 />
               </Field>
-              <button
+              <Button
                 className="icon-button"
                 aria-label="Xoá món"
                 disabled={busy || readOnly}
@@ -401,7 +406,7 @@ export default function Menus({ data, mutate, busy, readOnly }: PageProps) {
                 }
               >
                 <Trash2 size={18} />
-              </button>
+              </Button>
             </div>
           ))}
           {!d.foods.length && (
@@ -410,7 +415,7 @@ export default function Menus({ data, mutate, busy, readOnly }: PageProps) {
               công bố, dùng nút Xoá menu ngày này ở trên.
             </p>
           )}
-          <button
+          <Button
             className="text-button"
             onClick={() =>
               setDraft((old) =>
@@ -432,40 +437,42 @@ export default function Menus({ data, mutate, busy, readOnly }: PageProps) {
             }
           >
             <Plus size={14} /> Thêm món
-          </button>
+          </Button>
         </section>
       ))}
       {!!draft.length && (
         <section className="panel">
-          <button className="text-button" disabled={busy} onClick={clearDraft}>
+          <Button className="text-button" disabled={busy} onClick={clearDraft}>
             Bỏ bản nháp đang sửa
-          </button>
-          <button
+          </Button>
+          <Button
             className="secondary"
             disabled={busy || readOnly}
-            onClick={async () => {
-              const result = await mutate(
-                "menu.draft.save",
-                {
-                  weekStart: week,
-                  days: draft.map((day) => ({
-                    ...day,
-                    ...(sourceVersions[day.date] !== undefined
-                      ? { sourceVersion: sourceVersions[day.date] }
-                      : {}),
-                  })),
-                  ...(draftId ? { id: draftId } : {}),
-                },
-                draftVersion,
-              );
-              if (result) {
-                setDraftId(String(result.id));
-                setDraftVersion(Number(result.version));
-              }
+            onClick={() => {
+              void (async () => {
+                const result = await mutate(
+                  "menu.draft.save",
+                  {
+                    weekStart: week,
+                    days: draft.map((day) => ({
+                      ...day,
+                      ...(sourceVersions[day.date] !== undefined
+                        ? { sourceVersion: sourceVersions[day.date] }
+                        : {}),
+                    })),
+                    ...(draftId ? { id: draftId } : {}),
+                  },
+                  draftVersion,
+                );
+                if (result) {
+                  setDraftId(String(result.id));
+                  setDraftVersion(Number(result.version));
+                }
+              })();
             }}
           >
             Lưu bản nháp
-          </button>
+          </Button>
           <label className="checkbox">
             <input
               type="checkbox"
@@ -494,7 +501,7 @@ export default function Menus({ data, mutate, busy, readOnly }: PageProps) {
               ? `${affectedOrders} đơn đang hoạt động trong toàn tuần ${weekLabel(week)} sẽ bị xóa khi công bố, kể cả ngày không có trong bản nháp.`
               : "Không xoá toàn bộ đơn. Đổi tên/bỏ món sẽ huỷ phần đặt liên quan; đổi giá sẽ cập nhật giá cho đơn đang mở."}
           </p>
-          <button
+          <Button
             className="primary"
             disabled={
               busy ||
@@ -511,26 +518,28 @@ export default function Menus({ data, mutate, busy, readOnly }: PageProps) {
                   ),
               )
             }
-            onClick={async () => {
-              if (
-                clearExistingOrders &&
-                !window.confirm(
-                  `Công bố menu và xóa ${affectedOrders} đơn đang hoạt động trong toàn tuần ${weekLabel(week)}?`,
+            onClick={() => {
+              void (async () => {
+                if (
+                  clearExistingOrders &&
+                  !window.confirm(
+                    `Công bố menu và xóa ${affectedOrders} đơn đang hoạt động trong toàn tuần ${weekLabel(week)}?`,
+                  )
                 )
-              )
-                return;
-              const result = await mutate("menu.publish", {
-                weekStart: week,
-                clearExistingOrders,
-                days: draft,
-                notifyChat: modifiesPublished || notify,
-                expectedDayVersions: sourceVersions,
-              });
-              if (result) clearDraft();
+                  return;
+                const result = await mutate("menu.publish", {
+                  weekStart: week,
+                  clearExistingOrders,
+                  days: draft,
+                  notifyChat: modifiesPublished || notify,
+                  expectedDayVersions: sourceVersions,
+                });
+                if (result) clearDraft();
+              })();
             }}
           >
             Công bố menu
-          </button>
+          </Button>
         </section>
       )}
     </>

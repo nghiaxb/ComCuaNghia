@@ -13,7 +13,7 @@ export async function runJobs(env: Env) {
   if (error) throw Error("Claim deliveries failed");
   for (const delivery of data ?? []) {
     let ok = false;
-    let reason = "";
+    let reason: string;
     let retryAfter = 0;
     try {
       const url = validateWebhook(

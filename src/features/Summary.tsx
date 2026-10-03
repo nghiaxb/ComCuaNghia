@@ -1,12 +1,14 @@
-import SharedOrderOverview from './SharedOrderOverview';
-import BillSummary,{dayBill} from './BillSummary';
-import BillEditor from './BillEditor';
+import Button from "../components/ui/Button";
+import SharedOrderOverview from "./SharedOrderOverview";
+import BillSummary, { dayBill } from "./BillSummary";
+import BillEditor from "./BillEditor";
 import { useState } from "react";
 import type { PageProps } from "./common";
 import { Empty, vnd } from "./common";
 import WeekPicker from "./WeekPicker";
 import { defaultMenuWeek, weekStart } from "../../shared/time";
 export default function Summary({ data, mutate, busy, readOnly }: PageProps) {
+  const [copyError, setCopyError] = useState("");
   const [week, setWeek] = useState(defaultMenuWeek());
   const days = data.days
     .filter((d) => weekStart(d.date) === week)
@@ -47,7 +49,7 @@ export default function Summary({ data, mutate, busy, readOnly }: PageProps) {
     }),
   );
   const count = [...groups.values()].reduce((s, i) => s + i.quantity, 0);
-  const staff=data.member.role!=="employee";
+  const staff = data.member.role !== "employee";
   return (
     <>
       <div className="page-title">
@@ -72,7 +74,6 @@ export default function Summary({ data, mutate, busy, readOnly }: PageProps) {
         value={week}
         onChange={(value) => {
           setWeek(value);
-
         }}
         availableWeeks={data.days.map((d) => weekStart(d.date))}
         label="Tuần tổng hợp"
@@ -108,28 +109,38 @@ export default function Summary({ data, mutate, busy, readOnly }: PageProps) {
       <div className="panel">
         <div className="section-title">
           <h2>Đơn gửi quán</h2>
-          <button
+          <Button
             className="secondary"
             disabled={!orders.length}
-            onClick={async () => {
-              await navigator.clipboard.writeText(
-                [...groups.values()]
-                  .map(
-                    (i) =>
-                      `${i.name} ×${i.quantity}${i.note ? " — " + i.note : ""}`,
-                  )
-                  .join("\n") + `\nTổng: ${count} suất`,
+            onClick={() => {
+              setCopyError("");
+              void (async () => {
+                await navigator.clipboard.writeText(
+                  [...groups.values()]
+                    .map(
+                      (i) =>
+                        `${i.name} ×${i.quantity}${i.note ? " — " + i.note : ""}`,
+                    )
+                    .join("\n") + `\nTổng: ${count} suất`,
+                );
+                if (!readOnly)
+                  await mutate("audit.export", {
+                    type: "supplier-summary",
+                    dayId,
+                  });
+              })().catch(() =>
+                setCopyError("Không sao chép được đơn. Vui lòng thử lại."),
               );
-              if (!readOnly)
-                await mutate("audit.export", {
-                  type: "supplier-summary",
-                  dayId,
-                });
             }}
           >
             Sao chép đơn
-          </button>
+          </Button>
         </div>
+        {copyError && (
+          <p role="alert" className="error">
+            {copyError}
+          </p>
+        )}
         {!orders.length ? (
           <Empty />
         ) : (
@@ -156,25 +167,40 @@ export default function Summary({ data, mutate, busy, readOnly }: PageProps) {
             </table>
           </div>
         )}
-        {staff && <button
-          className={day?.locked ? "secondary" : "primary"}
-          disabled={!day || busy || readOnly || settled}
-          onClick={() => {
-            const reason = prompt(
-              day?.locked ? "Lý do mở khóa" : "Lý do khóa ngày",
-            );
-            if (reason)
-              void mutate(
-                "day.lock",
-                { dayId, locked: !day?.locked, reason },
-                day!.version,
+        {staff && (
+          <Button
+            className={day?.locked ? "secondary" : "primary"}
+            disabled={!day || busy || readOnly || settled}
+            onClick={() => {
+              const reason = prompt(
+                day?.locked ? "Lý do mở khóa" : "Lý do khóa ngày",
               );
-          }}
-        >
-          {day?.locked ? "Mở khóa ngày" : "Khóa ngày đặt cơm"}
-        </button>}
+              if (reason)
+                void mutate(
+                  "day.lock",
+                  { dayId, locked: !day?.locked, reason },
+                  day!.version,
+                );
+            }}
+          >
+            {day?.locked ? "Mở khóa ngày" : "Khóa ngày đặt cơm"}
+          </Button>
+        )}
       </div>
-      {day && <><BillSummary bill={dayBill(data,day.id)}/><BillEditor key={day.id+":"+dayBill(data,day.id).version} data={data} bill={dayBill(data,day.id)} mutate={mutate} busy={busy} readOnly={readOnly}/><SharedOrderOverview data={data} dayId={day.id}/></>}
+      {day && (
+        <>
+          <BillSummary bill={dayBill(data, day.id)} />
+          <BillEditor
+            key={day.id + ":" + dayBill(data, day.id).version}
+            data={data}
+            bill={dayBill(data, day.id)}
+            mutate={mutate}
+            busy={busy}
+            readOnly={readOnly}
+          />
+          <SharedOrderOverview data={data} dayId={day.id} />
+        </>
+      )}
     </>
   );
 }

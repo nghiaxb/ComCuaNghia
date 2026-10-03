@@ -158,7 +158,7 @@ it("recalculates shared bill after each order mutation and preserves settled all
   const food = (
     await db.query<any>("select * from public.foods where day_id=$1", [day.id])
   ).rows[0];
-  let preview = () =>
+  const preview = () =>
     db
       .query<any>("select private.bill_preview($1) b", [day.id])
       .then((r) => r.rows[0].b);
@@ -173,7 +173,7 @@ it("recalculates shared bill after each order mutation and preserves settled all
   });
   expect((await preview()).total).toBe(32500);
   await actor(employee);
-  const order = await command("order.save", {
+  await command("order.save", {
     dayId: day.id,
     memberId: employee,
     items: [{ menuItemId: food.id, quantity: 2, note: "" }],

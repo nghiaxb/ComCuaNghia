@@ -1,43 +1,8 @@
-import { useEffect, useId, useRef, type ReactNode } from "react";
-
+import type { ComponentProps } from "react";
+import Dialog from "../components/ui/Dialog";
 export default function ConfirmDialog({
-  children,
-  onClose,
-  busy,
   title = "Xác nhận xoá menu",
-}: {
-  children: ReactNode;
-  title?: string;
-  onClose: () => void;
-  busy: boolean;
-}) {
-  const ref = useRef<HTMLDialogElement>(null);
-  const titleId = useId();
-  useEffect(() => {
-    const previous = document.activeElement;
-    const dialog = ref.current!;
-    dialog.showModal();
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      dialog.close();
-      document.body.style.overflow = overflow;
-      if (previous instanceof HTMLElement && previous.isConnected)
-        previous.focus();
-    };
-  }, []);
-  return (
-    <dialog
-      ref={ref}
-      className="confirm-dialog"
-      aria-labelledby={titleId}
-      onCancel={(event) => {
-        event.preventDefault();
-        if (!busy) onClose();
-      }}
-    >
-      <h2 id={titleId}>{title}</h2>
-      {children}
-    </dialog>
-  );
+  ...props
+}: Omit<ComponentProps<typeof Dialog>, "title"> & { title?: string }) {
+  return <Dialog title={title} {...props} />;
 }

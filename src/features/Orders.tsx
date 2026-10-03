@@ -1,3 +1,4 @@
+import Button from "../components/ui/Button";
 import { useOrderDraft } from "./useOrderDraft";
 import ConfirmDialog from "./ConfirmDialog";
 import { useLocation } from "react-router-dom";
@@ -5,7 +6,7 @@ import SharedOrderOverview from "./SharedOrderOverview";
 import BillSummary, { dayBill } from "./BillSummary";
 import { proxyOrder } from "../lib/api";
 import type { Order } from "../../shared/contracts";
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { ShoppingBag, Plus, Minus, LockKeyhole, Clock3 } from "lucide-react";
 import type { PageProps } from "./common";
 import { Empty, vnd, Field } from "./common";
@@ -86,7 +87,15 @@ export default function Orders({
     return () => {
       cancelled = true;
     };
-  }, [proxy, day?.id, memberId, localOrder?.version, data.orders, readOnly]);
+  }, [
+    proxy,
+    day,
+    memberId,
+    localOrder,
+    readOnly,
+    data.shared,
+    loadRecipientOrder,
+  ]);
   const [online, setOnline] = useState(navigator.onLine);
   useEffect(() => {
     const update = () => setOnline(navigator.onLine);
@@ -127,8 +136,9 @@ export default function Orders({
   const { cart } = draft.state;
   const setCart = draft.setCart;
   const route = useLocation();
-  useEffect(() => {
-    const q = new URLSearchParams(route.search),
+  // Recipient data is read on a route change; realtime updates must not clear the proxy reason.
+  const applyRoute = useEffectEvent((search: string) => {
+    const q = new URLSearchParams(search),
       date = q.get("date"),
       recipient = q.get("member");
     if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
@@ -142,6 +152,9 @@ export default function Orders({
       setMemberId(recipient);
       setReason("");
     }
+  });
+  useEffect(() => {
+    applyRoute(route.search);
   }, [route.search]);
   const currentOrder = draft.state.order ?? order;
   const saveStatus = draft.state.status;
@@ -241,7 +254,7 @@ export default function Orders({
       />
       <div className="days">
         {days.map((d) => (
-          <button
+          <Button
             key={d.id}
             className={date === d.date ? "selected" : ""}
             onClick={() => draft.guard(() => setDate(d.date))}
@@ -255,7 +268,7 @@ export default function Orders({
               {d.date.slice(8)}/{d.date.slice(5, 7)}
             </strong>
             {d.locked && <LockKeyhole size={12} />}
-          </button>
+          </Button>
         ))}
         {!days.length && (
           <Field label="Ngày ăn">
@@ -310,23 +323,23 @@ export default function Orders({
                       {quantity > 0 && <small>Đã chọn</small>}
                     </div>
                     <div className="meal-quantity">
-                      <button
+                      <Button
                         aria-label={"Giảm " + food.name}
                         disabled={blocked || !quantity}
                         onClick={() => decrease(food.id)}
                       >
                         <Minus size={16} />
-                      </button>
+                      </Button>
                       <output aria-label={"Số lượng " + food.name}>
                         {quantity}
                       </output>
-                      <button
+                      <Button
                         aria-label={"Thêm " + food.name}
                         disabled={blocked || quantity >= 100}
                         onClick={() => add(food.id)}
                       >
                         <Plus size={16} />
-                      </button>
+                      </Button>
                     </div>
                   </li>
                 );
@@ -426,7 +439,7 @@ export default function Orders({
                     : ""}
                 </small>
                 <div className="quantity">
-                  <button
+                  <Button
                     aria-label="Giảm"
                     disabled={blocked}
                     onClick={() =>
@@ -442,15 +455,15 @@ export default function Orders({
                     }
                   >
                     <Minus size={13} />
-                  </button>
+                  </Button>
                   <span>{i.quantity}</span>
-                  <button
+                  <Button
                     aria-label="Tăng"
                     disabled={blocked}
                     onClick={() => add(i.menuItemId)}
                   >
                     <Plus size={13} />
-                  </button>
+                  </Button>
                 </div>
                 <input
                   aria-label="Ghi chú món"
@@ -515,12 +528,12 @@ export default function Orders({
             {statusText}
           </p>
           {saveStatus === "uncertain" && (
-            <button className="secondary" onClick={() => void draft.retry()}>
+            <Button className="secondary" onClick={() => void draft.retry()}>
               Thử lưu lại
-            </button>
+            </Button>
           )}
           {["conflict", "locked", "error"].includes(saveStatus) && (
-            <button
+            <Button
               className="secondary"
               onClick={() => {
                 if (confirm("Bỏ bản nháp và tải đơn mới nhất?"))
@@ -528,21 +541,21 @@ export default function Orders({
               }}
             >
               Tải đơn mới nhất
-            </button>
+            </Button>
           )}
           <div className="cart-total">
             <span>Tạm tính</span>
             <strong>{vnd(total)}</strong>
           </div>
-          <button
+          <Button
             className="primary wide"
             disabled={saveBlocked}
             onClick={saveOrder}
           >
             {cta}
-          </button>
+          </Button>
           {currentOrder?.status === "active" && (
-            <button
+            <Button
               className="text-button wide"
               disabled={
                 blocked ||
@@ -554,7 +567,7 @@ export default function Orders({
               }}
             >
               Hủy đơn
-            </button>
+            </Button>
           )}
           <p className="fine">
             Sau mốc dự kiến vẫn được sửa đơn cho đến khi ngày đặt cơm được khóa.
@@ -578,12 +591,12 @@ export default function Orders({
             bạn đồng ý.
           </p>
           <div className="actions">
-            <button autoFocus className="secondary" onClick={draft.keepManual}>
+            <Button autoFocus className="secondary" onClick={draft.keepManual}>
               Giữ bấm gửi cho bản nháp
-            </button>
-            <button className="primary" onClick={draft.approveMode}>
+            </Button>
+            <Button className="primary" onClick={draft.approveMode}>
               Bật tự lưu và gửi
-            </button>
+            </Button>
           </div>
         </ConfirmDialog>
       )}
@@ -601,32 +614,32 @@ export default function Orders({
                 : "Có thay đổi chưa lưu. Rời màn hình sẽ bỏ bản nháp này."}
           </p>
           <div className="actions">
-            <button
+            <Button
               autoFocus
               className="secondary"
               onClick={draft.closeNavigation}
             >
               Tiếp tục chỉnh
-            </button>
-            <button
+            </Button>
+            <Button
               className="primary"
               disabled={saveBlocked}
               onClick={() => void draft.submit()}
             >
               Lưu rồi kiểm tra
-            </button>
-            <button
+            </Button>
+            <Button
               className="danger"
               disabled={saveStatus === "saving"}
               onClick={draft.leave}
             >
               Bỏ bản nháp và chuyển
-            </button>
+            </Button>
           </div>
         </ConfirmDialog>
       )}
       <section className="mobile-order-bar" aria-label="Thao tác đơn cơm">
-        <button
+        <Button
           className="text-button"
           onClick={() =>
             document
@@ -639,10 +652,10 @@ export default function Orders({
             {cart.reduce((sum, item) => sum + item.quantity, 0)} suất · Xem đơn
             <strong>{vnd(total)}</strong>
           </span>
-        </button>
-        <button className="primary" disabled={saveBlocked} onClick={saveOrder}>
+        </Button>
+        <Button className="primary" disabled={saveBlocked} onClick={saveOrder}>
           {automatic ? cta : busy ? "Đang lưu…" : "Lưu đơn"}
-        </button>
+        </Button>
       </section>
     </div>
   );

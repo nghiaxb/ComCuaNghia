@@ -1,4 +1,4 @@
-import {MemoryRouter} from 'react-router-dom';
+import { MemoryRouter } from "react-router-dom";
 import { createRoot } from "react-dom/client";
 import { demo } from "../../src/lib/demo";
 import Orders from "../../src/features/Orders";
@@ -6,7 +6,7 @@ import Summary from "../../src/features/Summary";
 import Finance from "../../src/features/Finance";
 const params = new URLSearchParams(location.search);
 const data = structuredClone(demo);
-  data.member.order_save_mode="manual";
+data.member.order_save_mode = "manual";
 data.member.role = params.has("admin") ? "admin" : "employee";
 data.member.can_manage_finance = params.has("admin");
 data.members.push({
@@ -113,10 +113,12 @@ const Feature = params.has("finance")
     ? Summary
     : Orders;
 createRoot(document.getElementById("root")!).render(
-  <MemoryRouter><Feature
-    data={data}
-    busy={false}
-    readOnly={false}
-    mutate={async () => ({})}
-  /></MemoryRouter>,
+  <MemoryRouter>
+    <Feature
+      data={data}
+      busy={false}
+      readOnly={false}
+      mutate={async () => ({})}
+    />
+  </MemoryRouter>,
 );

@@ -1,3 +1,4 @@
+import Button from "../components/ui/Button";
 import { useState } from "react";
 import type { PageProps } from "./common";
 type Report = {
@@ -53,7 +54,7 @@ export default function ImportPanel({
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
-        <button
+        <Button
           className="secondary"
           disabled={readOnly || busy || !legacyName}
           onClick={() =>
@@ -61,11 +62,11 @@ export default function ImportPanel({
           }
         >
           Tạo hồ sơ cũ
-        </button>
+        </Button>
       </div>
-      <button className="text-button" onClick={downloadMapping}>
+      <Button className="text-button" onClick={downloadMapping}>
         Tải danh sách ánh xạ thành viên
-      </button>
+      </Button>
       <p className="fine">
         Không tự đoán email từ tên. Hồ sơ chỉ liên kết đăng nhập khi email công
         ty đã được xác minh khớp chính xác.
@@ -75,20 +76,24 @@ export default function ImportPanel({
         type="file"
         accept="application/json"
         disabled={readOnly}
-        onChange={async (e) => {
-          try {
-            const f = e.target.files?.[0];
-            if (!f) return;
-            if (f.size > 2 * 1024 * 1024) throw Error("Báo cáo quá lớn");
-            const r = JSON.parse(await f.text());
-            if (!Array.isArray(r.errors) || !r.payload?.batchId)
-              throw Error("Sai định dạng báo cáo");
-            setReport(r);
-            setReviewed(false);
-            setError("");
-          } catch (e) {
-            setError(e instanceof Error ? e.message : "Không đọc được báo cáo");
-          }
+        onChange={(e) => {
+          void (async () => {
+            try {
+              const f = e.target.files?.[0];
+              if (!f) return;
+              if (f.size > 2 * 1024 * 1024) throw Error("Báo cáo quá lớn");
+              const r = JSON.parse(await f.text());
+              if (!Array.isArray(r.errors) || !r.payload?.batchId)
+                throw Error("Sai định dạng báo cáo");
+              setReport(r);
+              setReviewed(false);
+              setError("");
+            } catch (e) {
+              setError(
+                e instanceof Error ? e.message : "Không đọc được báo cáo",
+              );
+            }
+          })();
         }}
       />
       {error && <p className="error">{error}</p>}
@@ -108,7 +113,7 @@ export default function ImportPanel({
             />{" "}
             Tôi đã đối chiếu tổng tiền, người thu và số dư đầu kỳ.
           </label>
-          <button
+          <Button
             className="primary"
             disabled={
               busy ||
@@ -125,7 +130,7 @@ export default function ImportPanel({
             }
           >
             Nhập dữ liệu đã đối chiếu
-          </button>
+          </Button>
           <p className="fine">
             Mã lô: {String(report.payload.batchId)}. Giữ mã này để đối chiếu
             hoặc hoàn tác trước khi có phát sinh tiếp.

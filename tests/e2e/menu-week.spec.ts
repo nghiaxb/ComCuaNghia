@@ -115,13 +115,11 @@ test("OCR keeps all week-changing controls disabled until image processing compl
   await page.evaluate(() => {
     window.createImageBitmap = () => new Promise<ImageBitmap>(() => {});
   });
-  await page
-    .getByLabel("Chọn ảnh menu", { exact: true })
-    .setInputFiles({
-      name: "menu.png",
-      mimeType: "image/png",
-      buffer: Buffer.from("image"),
-    });
+  await page.getByLabel("Chọn ảnh menu", { exact: true }).setInputFiles({
+    name: "menu.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("image"),
+  });
   await page
     .getByRole("button", { name: "Đọc menu bằng OCR", exact: true })
     .click();

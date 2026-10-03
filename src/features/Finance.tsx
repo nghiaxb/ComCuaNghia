@@ -1,5 +1,5 @@
-import BillSummary,{dayBill} from './BillSummary';
-import BillEditor from './BillEditor';
+import BillSummary, { dayBill } from "./BillSummary";
+import BillEditor from "./BillEditor";
 import { useEffect, useState } from "react";
 import { QRPay } from "vietnam-qr-pay";
 import QRCode from "qrcode";
@@ -223,7 +223,22 @@ export default function Finance({ data, mutate, busy, readOnly }: PageProps) {
             <h2>Quyết toán tuần</h2>
             <span>{settled ? "Đã quyết toán" : "Chưa quyết toán"}</span>
           </div>
-          {days.map(d=><div className="settle-day" key={d.id}><h3>{d.date} · {d.locked?'Đã khóa':'Chưa khóa'}</h3><BillSummary bill={dayBill(data,d.id)}/><BillEditor key={d.id+":"+dayBill(data,d.id).version} data={data} bill={dayBill(data,d.id)} mutate={mutate} busy={busy} readOnly={readOnly}/></div>)}
+          {days.map((d) => (
+            <div className="settle-day" key={d.id}>
+              <h3>
+                {d.date} · {d.locked ? "Đã khóa" : "Chưa khóa"}
+              </h3>
+              <BillSummary bill={dayBill(data, d.id)} />
+              <BillEditor
+                key={d.id + ":" + dayBill(data, d.id).version}
+                data={data}
+                bill={dayBill(data, d.id)}
+                mutate={mutate}
+                busy={busy}
+                readOnly={readOnly}
+              />
+            </div>
+          ))}
           <div className="actions">
             <button
               className="primary"
@@ -232,13 +247,17 @@ export default function Finance({ data, mutate, busy, readOnly }: PageProps) {
                 readOnly ||
                 settled ||
                 !days.length ||
-                days.some((d) => !d.locked || dayBill(data,d.id).warnings.length>0)
+                days.some(
+                  (d) => !d.locked || dayBill(data, d.id).warnings.length > 0,
+                )
               }
               onClick={() => {
                 if (confirm("Quyết toán tuần và ghi công nợ?"))
                   void mutate("finance.settle", {
                     weekStart: week,
-                    billVersions:Object.fromEntries(days.map(d=>[d.id,dayBill(data,d.id).version])),
+                    billVersions: Object.fromEntries(
+                      days.map((d) => [d.id, dayBill(data, d.id).version]),
+                    ),
                   });
               }}
             >

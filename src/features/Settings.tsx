@@ -1,3 +1,4 @@
+import Button from "../components/ui/Button";
 import ImportPanel from "./Import";
 import { useState } from "react";
 import type { PageProps } from "./common";
@@ -45,7 +46,7 @@ export default function Settings({ data, mutate, busy, readOnly }: PageProps) {
             <option value="manual">Bấm gửi để lưu</option>
           </select>
         </Field>
-        <button
+        <Button
           className="secondary"
           disabled={busy || readOnly}
           onClick={() =>
@@ -57,7 +58,7 @@ export default function Settings({ data, mutate, busy, readOnly }: PageProps) {
           }
         >
           Lưu hồ sơ
-        </button>
+        </Button>
       </section>
       {admin && (
         <>
@@ -169,7 +170,7 @@ export default function Settings({ data, mutate, busy, readOnly }: PageProps) {
             <p className="fine">
               Nhật ký luôn được lưu. Tắt Chat không xóa lịch sử.
             </p>
-            <button
+            <Button
               className="primary"
               disabled={busy || readOnly}
               onClick={() =>
@@ -177,13 +178,13 @@ export default function Settings({ data, mutate, busy, readOnly }: PageProps) {
               }
             >
               Lưu cài đặt hệ thống
-            </button>
+            </Button>
             <hr />
             {data.destinations.map((d) => (
               <div className="order-row" key={d.id}>
                 <b>{d.name}</b>
                 <span className="tag">{d.active ? "Đang bật" : "Đã tắt"}</span>
-                <button
+                <Button
                   className="text-button"
                   disabled={busy || readOnly}
                   onClick={() =>
@@ -195,7 +196,7 @@ export default function Settings({ data, mutate, busy, readOnly }: PageProps) {
                   }
                 >
                   {d.active ? "Tắt" : "Bật"}
-                </button>
+                </Button>
               </div>
             ))}
             <div className="form-row">
@@ -215,20 +216,22 @@ export default function Settings({ data, mutate, busy, readOnly }: PageProps) {
                 />
               </Field>
             </div>
-            <button
+            <Button
               className="secondary"
               disabled={!hook || !hookName || busy || readOnly}
-              onClick={async () => {
-                const result = await mutate("destination.save", {
-                  name: hookName,
-                  webhook: hook,
-                  active: true,
-                });
-                if (result) setHook("");
+              onClick={() => {
+                void (async () => {
+                  const result = await mutate("destination.save", {
+                    name: hookName,
+                    webhook: hook,
+                    active: true,
+                  });
+                  if (result) setHook("");
+                })();
               }}
             >
               Thêm nơi nhận
-            </button>
+            </Button>
           </section>
           <section className="panel">
             <h2>Thành viên & phân quyền</h2>
@@ -277,7 +280,7 @@ export default function Settings({ data, mutate, busy, readOnly }: PageProps) {
                   />{" "}
                   Tài chính
                 </label>
-                <button
+                <Button
                   className="text-button"
                   disabled={busy || readOnly}
                   onClick={() =>
@@ -294,7 +297,7 @@ export default function Settings({ data, mutate, busy, readOnly }: PageProps) {
                   }
                 >
                   {m.active ? "Vô hiệu hóa" : "Kích hoạt"}
-                </button>
+                </Button>
               </div>
             ))}
           </section>

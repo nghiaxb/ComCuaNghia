@@ -1,7 +1,107 @@
-import {createRoot} from 'react-dom/client';
-import {useState} from 'react';
-import {MemoryRouter} from 'react-router-dom';
-import Summary from '../../src/features/Summary';
-import {demo} from '../../src/lib/demo';
-import '../../src/app/styles.css';
-function Fixture(){const [data,setData]=useState(()=>{const d=structuredClone(demo);d.member.role='employee';d.member.can_manage_finance=false;d.days=[{id:'day',date:'2026-10-05',locked:false,version:1}];d.orders=[{id:'order',day_id:'day',member_id:'friend',status:'active',version:1,items:[{menuItemId:'food',name:'Cơm gà',unitPrice:35000,quantity:2,note:'Ít cơm'}]}];d.shared={roster:[{id:d.member.id,display_name:'Nghĩa',active:true},{id:'friend',display_name:'Lan',active:true},{id:'cancelled',display_name:'Mai',active:true}],actors:[{orderId:'order',actorId:d.member.id,actorName:'Nghĩa',updatedAt:'2026-10-05T03:00:00Z',kind:'order.save'}],bills:[{dayId:'day',state:'preview',discountKind:'percent',discountValue:10,discount:7000,fee:1000,covered:[],sponsors:[],original:70000,total:64000,version:1,shares:[{memberId:'friend',amount:64000}],warnings:[]}]};d.orders.push({...d.orders[0],id:'cancel',member_id:'cancelled',status:'cancelled'});return d;});return <MemoryRouter><button onClick={()=>setData(d=>({...d,orders:d.orders.map(o=>o.id==='order'?{...o,items:o.items.map(i=>({...i,quantity:3}))}:o),shared:{...d.shared!,bills:d.shared!.bills.map(b=>({...b,original:105000,discount:10500,total:95500,shares:[{memberId:'friend',amount:95500}]}))}}))}>Cập nhật từ đồng nghiệp</button><Summary data={data} busy={false} readOnly={false} mutate={async()=>({})}/></MemoryRouter>};createRoot(document.getElementById('root')!).render(<Fixture/>);
+import { createRoot } from "react-dom/client";
+import { useState } from "react";
+import { MemoryRouter } from "react-router-dom";
+import Summary from "../../src/features/Summary";
+import { demo } from "../../src/lib/demo";
+import "../../src/app/styles.css";
+function Fixture() {
+  const [data, setData] = useState(() => {
+    const d = structuredClone(demo);
+    d.member.role = "employee";
+    d.member.can_manage_finance = false;
+    d.days = [{ id: "day", date: "2026-10-05", locked: false, version: 1 }];
+    d.orders = [
+      {
+        id: "order",
+        day_id: "day",
+        member_id: "friend",
+        status: "active",
+        version: 1,
+        items: [
+          {
+            menuItemId: "food",
+            name: "Cơm gà",
+            unitPrice: 35000,
+            quantity: 2,
+            note: "Ít cơm",
+          },
+        ],
+      },
+    ];
+    d.shared = {
+      roster: [
+        { id: d.member.id, display_name: "Nghĩa", active: true },
+        { id: "friend", display_name: "Lan", active: true },
+        { id: "cancelled", display_name: "Mai", active: true },
+      ],
+      actors: [
+        {
+          orderId: "order",
+          actorId: d.member.id,
+          actorName: "Nghĩa",
+          updatedAt: "2026-10-05T03:00:00Z",
+          kind: "order.save",
+        },
+      ],
+      bills: [
+        {
+          dayId: "day",
+          state: "preview",
+          discountKind: "percent",
+          discountValue: 10,
+          discount: 7000,
+          fee: 1000,
+          covered: [],
+          sponsors: [],
+          original: 70000,
+          total: 64000,
+          version: 1,
+          shares: [{ memberId: "friend", amount: 64000 }],
+          warnings: [],
+        },
+      ],
+    };
+    d.orders.push({
+      ...d.orders[0],
+      id: "cancel",
+      member_id: "cancelled",
+      status: "cancelled",
+    });
+    return d;
+  });
+  return (
+    <MemoryRouter>
+      <button
+        onClick={() =>
+          setData((d) => ({
+            ...d,
+            orders: d.orders.map((o) =>
+              o.id === "order"
+                ? { ...o, items: o.items.map((i) => ({ ...i, quantity: 3 })) }
+                : o,
+            ),
+            shared: {
+              ...d.shared!,
+              bills: d.shared!.bills.map((b) => ({
+                ...b,
+                original: 105000,
+                discount: 10500,
+                total: 95500,
+                shares: [{ memberId: "friend", amount: 95500 }],
+              })),
+            },
+          }))
+        }
+      >
+        Cập nhật từ đồng nghiệp
+      </button>
+      <Summary
+        data={data}
+        busy={false}
+        readOnly={false}
+        mutate={async () => ({})}
+      />
+    </MemoryRouter>
+  );
+}
+createRoot(document.getElementById("root")!).render(<Fixture />);

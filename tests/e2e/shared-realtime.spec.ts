@@ -24,14 +24,19 @@ test("two pages share proxy autosave, totals, cancellation and menu changes thro
   await expect(bill).toContainText("32.500");
   await expect(roster).toContainText("Nghĩa · đặt/chỉnh hộ");
   await expect(b.getByRole("list").getByRole("status").first()).toHaveText("1");
-  a.on('dialog',d=>d.accept());
-  await a.getByRole('button',{name:'Hủy đơn',exact:true}).click();
+  a.on("dialog", (d) => d.accept());
+  await a.getByRole("button", { name: "Hủy đơn", exact: true }).click();
   await b.clock.runFor(300);
-  await expect(roster).toContainText('Đã huỷ');
-  await expect(bill).toContainText('0');
-  await a.getByRole('list').getByRole('button',{name:/Thêm/}).first().click();
-  await a.clock.runFor(700);await b.clock.runFor(300);
-  await expect(bill).toContainText('32.500');
+  await expect(roster).toContainText("Đã huỷ");
+  await expect(bill).toContainText("0");
+  await a
+    .getByRole("list")
+    .getByRole("button", { name: /Thêm/ })
+    .first()
+    .click();
+  await a.clock.runFor(700);
+  await b.clock.runFor(300);
+  await expect(bill).toContainText("32.500");
   const before = Number(
     await b.getByLabel("Số lần tải snapshot").textContent(),
   );
@@ -52,7 +57,7 @@ test("two pages share proxy autosave, totals, cancellation and menu changes thro
     b.getByRole("list").getByRole("button", { name: /Thêm/ }).first(),
   ).toBeDisabled();
   await a.getByRole("button", { name: "Mở lại và reconnect" }).click();
-  await b.getByRole("button", { name: "Reconnect", exact:true }).click();
+  await b.getByRole("button", { name: "Reconnect", exact: true }).click();
   await b.clock.runFor(300);
   await expect(
     b.getByRole("list").getByRole("button", { name: /Thêm/ }).first(),

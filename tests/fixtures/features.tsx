@@ -1,4 +1,4 @@
-import {MemoryRouter} from 'react-router-dom';
+import { MemoryRouter } from "react-router-dom";
 import { createRoot } from "react-dom/client";
 import { useState } from "react";
 import ImageUpload from "../../src/features/ImageUpload";
@@ -11,7 +11,7 @@ function Fixture() {
   const [refresh, setRefresh] = useState(0);
   const [payload, setPayload] = useState("");
   const data = structuredClone(demo);
-  data.member.order_save_mode="manual";
+  data.member.order_save_mode = "manual";
   if (new URLSearchParams(location.search).has("menus")) {
     if (new URLSearchParams(location.search).has("savedMenu"))
       data.drafts = [
@@ -102,11 +102,27 @@ function Fixture() {
         readOnly={false}
         mutate={async (kind, payload, version) => {
           setPayload(JSON.stringify({ kind, payload, version }));
-          if(kind==='order.save')return {id:'existing',day_id:payload.dayId,member_id:payload.memberId,status:'active',version:(version??0)+1,items:(payload.items as any[]).map(i=>({...i,name:data.foods.find(f=>f.id===i.menuItemId)?.name,unitPrice:35000}))};
+          if (kind === "order.save")
+            return {
+              id: "existing",
+              day_id: payload.dayId,
+              member_id: payload.memberId,
+              status: "active",
+              version: (version ?? 0) + 1,
+              items: (payload.items as any[]).map((i) => ({
+                ...i,
+                name: data.foods.find((f) => f.id === i.menuItemId)?.name,
+                unitPrice: 35000,
+              })),
+            };
           return {};
         }}
       />
     </>
   );
 }
-createRoot(document.getElementById("root")!).render(<MemoryRouter><Fixture /></MemoryRouter>);
+createRoot(document.getElementById("root")!).render(
+  <MemoryRouter>
+    <Fixture />
+  </MemoryRouter>,
+);

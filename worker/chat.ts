@@ -16,7 +16,9 @@ export type ChatEvent = {
     status?: string;
   };
   after?: {
-    discount_kind?:string;discount_value?:number;fee?:number;
+    discount_kind?: string;
+    discount_value?: number;
+    fee?: number;
     items?: {
       name: string;
       quantity: number;
@@ -38,7 +40,7 @@ const labels: Record<string, string> = {
   "payment.confirm": "Xác nhận thanh toán",
   "finance.settle": "Quyết toán tuần",
   "finance.reopen": "Mở lại quyết toán",
-  "bill.save":"Cập nhật bill",
+  "bill.save": "Cập nhật bill",
   "settings.save": "Cập nhật cài đặt",
   "destination.test": "Kiểm tra kết nối Google Chat",
 };
@@ -61,7 +63,18 @@ export function formatChat(p: ChatEvent, appUrl: string) {
   if (p.subject) lines.push(`Thành viên: ${clean(p.subject)}`);
   if (p.kind.startsWith("order."))
     lines.push("Trước: " + list(p.before), "Sau: " + list(p.after));
-  if(p.kind==='bill.save'&&p.after){const a=p.after;lines.push('Giảm giá: '+(a.discount_kind==='percent'?`${a.discount_value}%`:a.discount_kind==='fixed'?`${Number(a.discount_value).toLocaleString('vi-VN')} ₫`:'Không giảm'),'Phí thêm: '+Number(a.fee??0).toLocaleString('vi-VN')+' ₫');}
+  if (p.kind === "bill.save" && p.after) {
+    const a = p.after;
+    lines.push(
+      "Giảm giá: " +
+        (a.discount_kind === "percent"
+          ? `${a.discount_value}%`
+          : a.discount_kind === "fixed"
+            ? `${Number(a.discount_value).toLocaleString("vi-VN")} ₫`
+            : "Không giảm"),
+      "Phí thêm: " + Number(a.fee ?? 0).toLocaleString("vi-VN") + " ₫",
+    );
+  }
   if (p.menu)
     for (const d of p.menu)
       lines.push(

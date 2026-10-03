@@ -204,4 +204,17 @@ it("menu-driven order changes show both prices and quantities in Chat", () => {
   expect(text).toContain("45.000");
   expect(text).toContain("Đơn cập nhật theo menu");
 });
-it('labels shared bill changes and reports public discount/fee settings',()=>{const text=formatChat({eventId:'bill-event',kind:'bill.save',actor:'Nghĩa',after:{discount_kind:'percent',discount_value:10,fee:1000} as any},'https://app.test').text;expect(text).toContain('Cập nhật bill');expect(text).toContain('10%');expect(text).toContain('1.000');});
+it("labels shared bill changes and reports public discount/fee settings", () => {
+  const text = formatChat(
+    {
+      eventId: "bill-event",
+      kind: "bill.save",
+      actor: "Nghĩa",
+      after: { discount_kind: "percent", discount_value: 10, fee: 1000 } as any,
+    },
+    "https://app.test",
+  ).text;
+  expect(text).toContain("Cập nhật bill");
+  expect(text).toContain("10%");
+  expect(text).toContain("1.000");
+});

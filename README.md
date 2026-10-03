@@ -38,3 +38,25 @@ npm run check:secrets
 ```
 
 Integration chạy PostgreSQL WASM (PGlite), có mô phỏng Auth/RLS; E2E hiện kiểm tra giao diện mẫu ở 390px và 1440px. Chưa thay thế kiểm tra OAuth, Realtime, Storage và Worker cron trên staging. Xem [hướng dẫn triển khai](docs/deployment.md), [nhập dữ liệu](docs/import.md) và [trạng thái kiểm chứng](docs/verification.md).
+
+### Code quality and shared UI
+
+Use Node.js 24 and `npm ci`. Run `npm run lint`, `npm run format:check`,
+`npm run typecheck`, and the existing test suites before opening a PR.
+`npm run format` formats application code, TypeScript tests/fixtures, root
+configuration, JavaScript scripts, CI YAML, and this README. Historical design
+notes, imported data, generated output, Python, and SQL keep their existing format.
+CI rejects lint warnings and formatting differences.
+
+ESLint uses flat configuration with TypeScript-aware Promise rules and React
+Hooks checks. Explicit `any` is permitted only in test harnesses; unused test
+parameters may use an underscore prefix. TypeScript is pinned to 6.0.3 within
+the supported range of typescript-eslint. Intentional non-reactive subject/route
+initialization uses React Effect Events so realtime updates cannot reset drafts.
+
+Reuse `src/components/ui/Button.tsx` for native button props and existing visual
+variants (primary, secondary, danger, text). Its default type is `button`; form
+submission requires explicit `type="submit"`. `Dialog.tsx` uses a native modal
+dialog, accessible heading, Escape protection while busy, and focus restoration.
+`ConfirmDialog` retains its menu-specific default title for existing callers.
+No Redux, query cache, or additional UI framework is required at this stage.

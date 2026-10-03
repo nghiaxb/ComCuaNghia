@@ -38,7 +38,9 @@ test("all six preview screens render without overflow on mobile and desktop", as
       ).toBe(true);
     }
     await page.getByRole("link", { name: "Đặt cơm", exact: true }).click();
-    await page.getByRole("button", { name: "Tuần hiện tại", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Tuần hiện tại", exact: true })
+      .click();
     await page.screenshot({
       path: `test-results/preview-${width}.png`,
       fullPage: true,

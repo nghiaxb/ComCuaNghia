@@ -1,3 +1,4 @@
+import Button from "../components/ui/Button";
 import { useState } from "react";
 import type { BillPreview } from "../../shared/contracts";
 import type { PageProps } from "./common";
@@ -98,7 +99,7 @@ export default function BillEditor({
       {!valid && (
         <p className="error">Kiểm tra giảm giá/phí và danh sách tài trợ.</p>
       )}
-      <button
+      <Button
         className="secondary"
         disabled={busy || readOnly || !valid}
         onClick={() =>
@@ -117,7 +118,7 @@ export default function BillEditor({
         }
       >
         Lưu bill
-      </button>
+      </Button>
     </section>
   );
 }

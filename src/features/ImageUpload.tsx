@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import Button from "../components/ui/Button";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ScanLine, Upload } from "lucide-react";
 
 export default function ImageUpload({
@@ -26,27 +27,34 @@ export default function ImageUpload({
   );
   const pending = useRef(false);
   const depth = useRef(0);
-  const receive = (files: File[]) => {
-    if (disabled || pending.current) return;
-    if (files.length !== 1) {
-      setError("Vui lòng chọn một ảnh menu mỗi lần.");
-      return;
-    }
-    const file = files[0];
-    if (
-      !["image/png", "image/jpeg", "image/webp"].includes(file.type) ||
-      file.size > 10 * 1024 * 1024
-    ) {
-      setError("Chọn ảnh PNG, JPEG hoặc WebP dưới 10 MB.");
-      return;
-    }
-    if (previewUrl.current) URL.revokeObjectURL(previewUrl.current);
-    const url = URL.createObjectURL(file);
-    previewUrl.current = url;
-    setPreview({ url, name: file.name || "Ảnh từ clipboard", size: file.size });
-    setSelectedFile(file);
-    setError("");
-  };
+  const receive = useCallback(
+    (files: File[]) => {
+      if (disabled || pending.current) return;
+      if (files.length !== 1) {
+        setError("Vui lòng chọn một ảnh menu mỗi lần.");
+        return;
+      }
+      const file = files[0];
+      if (
+        !["image/png", "image/jpeg", "image/webp"].includes(file.type) ||
+        file.size > 10 * 1024 * 1024
+      ) {
+        setError("Chọn ảnh PNG, JPEG hoặc WebP dưới 10 MB.");
+        return;
+      }
+      if (previewUrl.current) URL.revokeObjectURL(previewUrl.current);
+      const url = URL.createObjectURL(file);
+      previewUrl.current = url;
+      setPreview({
+        url,
+        name: file.name || "Ảnh từ clipboard",
+        size: file.size,
+      });
+      setSelectedFile(file);
+      setError("");
+    },
+    [disabled],
+  );
   async function submit() {
     if (!selectedFile || disabled || pending.current) return;
     pending.current = true;
@@ -85,7 +93,7 @@ export default function ImageUpload({
     };
     document.addEventListener("paste", paste);
     return () => document.removeEventListener("paste", paste);
-  }, [disabled, onImage]);
+  }, [disabled, receive]);
   return (
     <section role="region" aria-label="Ảnh menu OCR">
       <label
@@ -152,22 +160,22 @@ export default function ImageUpload({
         </figure>
       )}
       <div className="form-row">
-        <button
+        <Button
           type="button"
           disabled={disabled || submitting || !selectedFile}
           onClick={() => void submit()}
         >
           {submitting ? "Đang đọc menu…" : "Đọc menu bằng OCR"}
-        </button>
+        </Button>
         {selectedFile && (
-          <button
+          <Button
             type="button"
             className="secondary"
             disabled={disabled || submitting}
             onClick={clear}
           >
             Bỏ ảnh đã chọn
-          </button>
+          </Button>
         )}
       </div>
       {error && (

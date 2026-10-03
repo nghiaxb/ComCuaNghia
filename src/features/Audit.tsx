@@ -32,14 +32,11 @@ export default function Audit({ data, mutate, busy, readOnly }: PageProps) {
             <article className="event" key={e.id}>
               <span className="event-dot" />
               <div>
-                <b>
-                  {memberName(e.actor_id) ?? "Hệ thống"}
-                </b>{" "}
+                <b>{memberName(e.actor_id) ?? "Hệ thống"}</b>{" "}
                 <span className="tag">{e.kind}</span>
                 {e.subject_id && e.subject_id !== e.actor_id && (
                   <span className="tag">
-                    Cho{" "}
-                    {memberName(e.subject_id) ?? "thành viên"}
+                    Cho {memberName(e.subject_id) ?? "thành viên"}
                   </span>
                 )}
                 {e.after_cutoff && (

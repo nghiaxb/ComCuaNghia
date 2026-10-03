@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import type { Order } from "../../shared/contracts";
 import {
   createOrderAutosave,
@@ -38,14 +38,18 @@ export function useOrderDraft(options: {
   const [automatic, setAutomatic] = useState(options.automatic);
   const [modeConsent, setModeConsent] = useState(false);
   const approvedMode = useRef(false);
+  // A subject change starts a fresh controller. Realtime acknowledgements and configuration
+  // updates below must preserve its in-flight request and unsaved cart.
+  const initialize = useEffectEvent(() => options);
   useEffect(() => {
+    const initial = initialize();
     const c = createOrderAutosave({
-      ...options,
+      ...initial,
       submit: (r) => submitRef.current(r),
       onChange: (state) => setStored({ subject, state }),
     });
     controller.current = c;
-    setAutomatic(options.automatic);
+    setAutomatic(initial.automatic);
     setModeConsent(false);
     setStored({ subject, state: c.getState() });
     return () => {
@@ -55,12 +59,13 @@ export function useOrderDraft(options: {
   }, [subject]);
   useEffect(
     () => controller.current?.acknowledge(options.order),
-    [subject, options.order?.version, options.order?.id],
+    [subject, options.order],
   );
+  const currentAutomatic = useEffectEvent(() => automatic);
   useEffect(() => {
     if (
       options.automatic &&
-      !automatic &&
+      !currentAutomatic() &&
       controller.current?.getState().dirty &&
       !approvedMode.current
     ) {
@@ -157,7 +162,7 @@ export function useOrderDraft(options: {
       window.removeEventListener("order-navigation-request", navigate);
       document.removeEventListener("click", click, true);
     };
-  }, []);
+  }, [options.routeBlocking]);
   return {
     state,
     automatic,
