@@ -105,3 +105,19 @@ typecheck, secret scan, build và dry-run đạt. Review độc lập cuối kh�
 35 trạng thái local ở 320/390/1440px không tràn ngang/page error; kiểm tra thêm
 tên/ghi chú dài, đơn hủy, tiền chia, nháp bill và phím ArrowRight/End trong tab.
 Ảnh/số đo mới ở ignored `.superpowers/style-qa/`.
+
+## Thu gọn đặt cơm theo phản hồi — 2026-10-04
+
+Đã triển khai yêu cầu tiếp theo ở commit `95fa37e`: gom điều hướng tuần, bỏ
+thông tin ngày tuần lặp, đưa người nhận vào toolbar desktop, chỉ hiện ô lý do
+khi đặt hộ, thu gọn đầu trang/danh sách/giỏ và bỏ selector cách lưu khỏi từng đơn.
+Cách lưu chỉ chỉnh trong Cài đặt cá nhân; trạng thái lưu, consent và nháp giữ nguyên.
+Mục P2 về phần chọn tuần/ngày ở bảng đánh giá ban đầu đã được xử lý.
+
+Tại 1440×800 với AppShell, năm món và hai món cũ trong giỏ, đáy danh sách món
+y=653px và đáy nút lưu y=746,25px nằm trong khung nhìn đầu. Mobile có năm ngày
+trên một hàng và thao tác giỏ cố định; ô ngày tuần trống và refresh header đăng nhập
+được sửa sau khi tái hiện lỗi ở 320px. Không tràn ngang tại 320/390/1440px.
+35 trạng thái local và preview staging đạt; 62 Playwright cùng baseline còn lại
+đạt. Chi tiết release và giới hạn kiểm chứng ở mục mới nhất trong
+[staging](staging.md#thu-gọn-màn-hình-đặt-cơm-và-cài-đặt-cách-lưu--2026-10-04).

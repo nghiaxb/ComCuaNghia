@@ -222,3 +222,56 @@ không đăng nhập, ghi dữ liệu thật hoặc coi preview là bằng chứ
 không đổi trong đợt styling; cần xử lý nâng công cụ test trong phạm vi riêng.
 Realtime hai tài khoản thật, bàn phím thiết bị thật và OCR/Chat thật vẫn chưa kiểm chứng.
 Không ghi dữ liệu thật, gọi OCR thật hoặc gửi Google Chat trong đợt này.
+
+## Thu gọn màn hình đặt cơm và cài đặt cách lưu — 2026-10-04
+
+Người dùng yêu cầu sửa khoảng trống bộ lọc tuần, chỉ giữ cách lưu đơn trong Cài đặt
+cá nhân và giảm cuộn trên màn hình đặt cơm. Commit ứng dụng
+`95fa37e649cabcc6b45b20a522c94bb47f186d29` đã push `feat/webapp-v1`; PR #1 vẫn
+open/draft, không merge main.
+
+Gom select tuần và nút trước/hiện tại/kế tiếp thành một cụm, bỏ dòng ngày tuần lặp
+ở giao diện nhưng giữ thông báo cho screen reader. Người nhận nằm cùng toolbar
+trên desktop; lý do đặt hộ chỉ xuất hiện khi chọn đồng nghiệp. Thu gọn tiêu đề,
+danh sách món và giỏ; mobile giữ năm ngày trên một hàng và thanh thao tác cố định.
+Không còn selector cách lưu trong giỏ. Cài đặt cá nhân vẫn lưu lựa chọn của user,
+áp dụng cả khi đặt hộ. Không sửa controller autosave, retry/requestId, expected
+version, consent khi đổi chế độ từ phiên khác hoặc dirty guards.
+
+Kiểm tra bổ sung tái hiện và sửa ô ngày tuần trống bị bó vào một cột mobile,
+và nút refresh của header đăng nhập tràn ngang ở 320px. Năm regression mới đã chạy
+RED trước sửa và GREEN sau sửa; fixture desktop có AppShell, năm ngày/năm món,
+hai món trong giỏ. Bài autosave cũ đổi từ selector đã bỏ sang sự kiện đổi cài đặt
+từ phiên khác, vẫn kiểm tra consent và số lần ghi.
+
+`npm ci` trên Node 24, cài Chromium, lint, format, typecheck, secret scan,
+52 unit, 34 integration, 3 Python, 62 Playwright, configured build và staging
+Wrangler dry-run đều đạt. Dùng `python` trên Windows; dependencies/lockfile không
+đổi. Hai cảnh báo high của Playwright và cảnh báo JS chunk lớn đã ghi ở mục trước
+vẫn còn. Review độc lập cuối không còn lỗi chặn bàn giao.
+
+Visual QA: 35 trạng thái local ở 320/390/1440px không tràn ngang/page error,
+kiểm tra picker bằng bàn phím, trả focus và giữ nháp giỏ, nháp bill, OCR preview
+và lỗi bằng fixture. Kiểm tra riêng AppShell có phiên đăng nhập với năm món và
+hai món cũ trong giỏ: tại 1440×800, danh sách món kết thúc y=653px và nút lưu
+kết thúc y=746,25px, đều trong khung nhìn đầu. Tên món dài vẫn xuống dòng.
+Giỏ nhiều món, nội dung đặt hộ và phần tổng hợp bên dưới vẫn có thể cần cuộn;
+không ẩn dữ liệu để ép toàn trang vào một màn hình. Ảnh và số đo local ở ignored
+`.superpowers/order-compact-qa/` và `.superpowers/compact-qa/`.
+
+Deploy staging qua connector Cloudflare và helper assets hiện có: version
+`9e2e2768-52d3-4176-b1f4-0475e6e31e71`, deployment
+`b2927fde-788b-4225-9d4e-3adc8d6ecb13`, 100% tại
+`2026-10-04T08:31:53.126095Z`. Giữ tám bindings names/types, plain values,
+secret inheritance, observability, `global_fetch_strictly_public`, SPA fallback
+và `/api/*` Worker-first.
+
+Sau deploy: `/order` trả HTML 200 (404 bytes), JS `index-DXFlprv7.js` trả 200
+`text/javascript` (830.350 bytes), CSS `index-B3adGQpy.css` trả 200 `text/css`
+(76.857 bytes); cả ba khớp chính xác local. Health 200/ok=true/configured=true;
+snapshot chưa đăng nhập 401. Chromium kiểm tra Đặt cơm/Cài đặt qua preview staging
+tại 320/390/1440px đạt, không tràn ngang/page error.
+
+Fixture và preview không chứng minh live Realtime. Hai tài khoản công ty thật,
+bàn phím mobile và OCR/Chat thật vẫn cần phối hợp như handoff. Không đăng nhập,
+ghi dữ liệu thật, gọi OCR thật hay gửi Chat thử trong đợt này.
