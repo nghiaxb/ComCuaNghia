@@ -1,7 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 import {
-  UtensilsCrossed,
   LayoutGrid,
   BookOpen,
   ClipboardList,
@@ -73,9 +72,13 @@ export default function AppShell({
       to="/order"
       className="flex items-center gap-3 p-5 pr-14 font-semibold text-lg md:pr-5"
     >
-      <span className="rounded-lg bg-primary p-2 text-primary-foreground">
-        <UtensilsCrossed size={20} />
-      </span>
+      <img
+        src="/brand/logo-mark.png"
+        alt=""
+        width={36}
+        height={36}
+        className="size-9 shrink-0 rounded-lg"
+      />
       Cơm Của Nghĩa
     </NavLink>
   );

@@ -535,7 +535,7 @@
     @apply mx-auto my-8 max-w-lg rounded-2xl border bg-background p-6 text-center shadow-xs md:my-16 md:p-10;
   }
   .welcome-mark {
-    @apply mx-auto mb-5 flex size-16 items-center justify-center rounded-xl bg-primary/10 text-primary;
+    @apply mx-auto mb-5 block size-16 rounded-xl;
   }
   .welcome > p {
     @apply my-4 text-muted-foreground;

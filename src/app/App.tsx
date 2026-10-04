@@ -2,7 +2,7 @@ import OrderNavigationBoundary from "../features/OrderNavigationBoundary";
 import { requestOrderNavigation } from "../features/useOrderDraft";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import { UtensilsCrossed, ArrowUpRight } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import AppShell from "./AppShell";
 import Button from "../components/ui/ActionButton";
 import { Skeleton } from "../components/ui/skeleton";
@@ -197,9 +197,13 @@ export default function App() {
         </Routes>
       ) : (
         <section className="welcome">
-          <div className="welcome-mark">
-            <UtensilsCrossed size={40} />
-          </div>
+          <img
+            src="/brand/logo-mark.png"
+            alt=""
+            width={64}
+            height={64}
+            className="welcome-mark"
+          />
           <p className="eyebrow">CƠM NGON. ĐỒNG ĐỘI VUI.</p>
           <h1>
             Bữa trưa của bạn,
