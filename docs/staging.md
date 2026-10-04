@@ -183,3 +183,42 @@ không có page error; không đăng nhập hay sửa dữ liệu thật.
 [đánh giá UI/UX ngày 2026-10-04](ui-ux-review-2026-10-04.md). Đề xuất cải thiện tiếp,
 chưa triển khai thêm thay đổi hành vi. Kiểm chứng hai tài khoản Realtime, bàn phím
 mobile và OCR/Chat thật vẫn cần người dùng hỗ trợ theo giới hạn ở trên.
+
+## Styling được duyệt, commit/push và staging — 2026-10-04
+
+Người dùng duyệt các chỉnh styling sau đánh giá bổ sung. Commit ứng dụng
+`cff86ee145cbe2e4e3f3fea39fbc442e9a47fec7` đã push `feat/webapp-v1`: spacing/card
+nhất quán, thực đơn desktop cao theo nội dung, quantity outline, roster mobile gọn,
+tổng tiền nổi bật/tabular numerals và lưới tab Cài đặt. Giữ các handler, quyền,
+versions, nháp và schema. PR #1 vẫn draft, không merge main.
+
+`npm ci` trên Node 24 đạt; lint, format, typecheck, secret scan, 52 unit,
+34 integration, 3 Python, cài Chromium, 57 Playwright, configured build và staging
+Wrangler dry-run đều đạt. Có thêm regression RED→GREEN cho share có trong snapshot
+khi recipient chưa có đơn; fixture chỉ kiểm chứng hiển thị, không allocator thật.
+Review độc lập cuối không còn Critical/Important/Minor.
+
+Visual QA mới: 35 trạng thái local ở 320/390/1440px không tràn ngang/page error;
+recapture Cài đặt và kiểm tra thêm tên/ghi chú dài, lịch sử hủy, bill dirty giữ nháp,
+share và điều hướng tab bằng bàn phím. Số đo trước/sau có trong
+[báo cáo UI/UX](ui-ux-review-2026-10-04.md#styling-đã-duyệt-và-triển-khai--2026-10-04).
+
+Deploy qua connector Cloudflare và helper MIME-preserving hiện có: version
+`a9efa02d-fbc9-4c72-9258-7de727603fd1`, deployment
+`d88a67ec-bcc4-4d4c-8f97-7c674e5d8eac`, 100% tại `2026-10-04T07:57:18.108432Z`.
+Giữ tám bindings names/types, plain values, secret inheritance, observability,
+`global_fetch_strictly_public`, SPA fallback và `/api/*` Worker-first.
+
+Sau deploy, `/order` HTML 200 (404 bytes), JS `index-DdA-KL6t.js` 200
+`text/javascript` (830.498 bytes) và CSS `index-CTWdhfZ3.css` 200 `text/css`
+(74.437 bytes) khớp chính xác local. Health 200/configured=true, snapshot không
+đăng nhập 401. JS gzip khoảng 248,52KB; cảnh báo chunk >500KB vẫn còn.
+Chromium kiểm tra Đặt cơm/Cài đặt qua preview staging tại 320/390/1440px đạt,
+không tràn ngang/page error. Chọn tuần có dữ liệu mẫu khi kiểm tra vào cuối tuần;
+không đăng nhập, ghi dữ liệu thật hoặc coi preview là bằng chứng backend/Realtime.
+
+`npm ci`/`npm audit` còn báo hai high trong toolchain `@playwright/test`/`playwright`
+1.51.1, cùng advisory GHSA-7mvr-c777-76hp về tải browser. Lockfile/dependencies
+không đổi trong đợt styling; cần xử lý nâng công cụ test trong phạm vi riêng.
+Realtime hai tài khoản thật, bàn phím thiết bị thật và OCR/Chat thật vẫn chưa kiểm chứng.
+Không ghi dữ liệu thật, gọi OCR thật hoặc gửi Google Chat trong đợt này.

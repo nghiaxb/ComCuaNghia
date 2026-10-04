@@ -73,3 +73,35 @@ là tiêu chí AAA, không nên trình bày như lỗi AA đã được chứng 
 
 Thứ tự đề xuất: nút đóng và reduced motion → phạm vi nút lưu Cài đặt → thu gọn
 bill theo ngày với bảo toàn nháp → gọn phần chọn tuần/ngày và padding bill.
+
+## Styling đã duyệt và triển khai — 2026-10-04
+
+Sau phần đánh giá trên, người dùng duyệt sáu cải thiện styling: spacing/padding,
+chiều cao card thực đơn desktop, phân cấp nút quantity/lưu, roster mobile gọn,
+tổng tiền nổi bật và lưới tab Cài đặt. Commit ứng dụng `cff86ee` đã push và deploy
+staging. Các phát hiện UX khác phía trên vẫn là đề xuất riêng.
+
+| Chi tiết                                     | Trước    | Sau                        |
+| -------------------------------------------- | -------- | -------------------------- |
+| Khoảng cách tiêu đề roster → bộ lọc          | 52px     | 16px                       |
+| Khoảng cách bộ lọc → bảng                    | 36px     | 16px                       |
+| Tiêu đề bill → số liệu                       | 56px     | 16px                       |
+| Lề ngang form bill, tính cả border 1px       | 1px      | 17px mobile / 21px desktop |
+| Khoảng trống dưới món cuối ở desktop         | 106,25px | 21px padding/border        |
+| Card người chưa đặt trên mobile, dữ liệu mẫu | 365,81px | 70px                       |
+
+Nút quantity dùng outline và giữ 44×44px; nút lưu giữ màu primary. Tổng bill có
+nền xanh nhạt, chữ lớn hơn, các số liệu chính dùng tabular numerals. Tab quản trị
+mobile dùng hai cột, Import trải cả hàng; nhân viên dùng một cột.
+
+Roster mobile gom tên/trạng thái cạnh thao tác; món/ghi chú, tiền chia và người
+thao tác tiếp tục hiển thị. Chỉ bỏ các ô rỗng của người chưa đặt. Mọi share có trong
+snapshot, kể cả 0, vẫn được giữ. Regression bổ sung đã thất bại do share bị ẩn rồi
+đạt sau sửa selector. Fixture này là projection tổng hợp để bảo vệ hiển thị, không
+khẳng định allocator backend hỗ trợ sponsor chưa đặt cơm.
+
+Kiểm chứng: 52 unit, 34 integration, 3 Python, 57 Playwright đạt; lint, format,
+typecheck, secret scan, build và dry-run đạt. Review độc lập cuối không còn vấn đề.
+35 trạng thái local ở 320/390/1440px không tràn ngang/page error; kiểm tra thêm
+tên/ghi chú dài, đơn hủy, tiền chia, nháp bill và phím ArrowRight/End trong tab.
+Ảnh/số đo mới ở ignored `.superpowers/style-qa/`.
