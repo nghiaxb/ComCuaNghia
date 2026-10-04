@@ -9,6 +9,7 @@ import {
 import { Input } from "../components/ui/input";
 import Button from "../components/ui/ActionButton";
 import ImportPanel from "./Import";
+import { ThemePreferenceField } from "./ThemeControl";
 import { useState } from "react";
 import type { PageProps } from "./common";
 import { Field, Person } from "./common";
@@ -104,6 +105,7 @@ export default function Settings({ data, mutate, busy, readOnly }: PageProps) {
             >
               Lưu hồ sơ
             </Button>
+            <ThemePreferenceField />
           </section>
         </TabsContent>
         {admin && (

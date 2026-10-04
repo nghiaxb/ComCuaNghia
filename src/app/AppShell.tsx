@@ -22,6 +22,7 @@ import {
   SheetTrigger,
 } from "../components/ui/sheet";
 import { Separator } from "../components/ui/separator";
+import { ThemeSwitcher } from "../features/ThemeControl";
 const nav = [
   ["/order", "Đặt cơm", LayoutGrid],
   ["/menus", "Quản lý menu", BookOpen],
@@ -58,7 +59,7 @@ export default function AppShell({
             to={path}
             onClick={() => setOpen(false)}
             className={({ isActive }) =>
-              `flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors ${isActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`
+              `flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors ${isActive ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`
             }
           >
             <Icon size={18} />
@@ -70,7 +71,7 @@ export default function AppShell({
   const brand = (
     <NavLink
       to="/order"
-      className="flex items-center gap-3 p-5 font-semibold text-lg"
+      className="flex items-center gap-3 p-5 pr-14 font-semibold text-lg md:pr-5"
     >
       <span className="rounded-lg bg-primary p-2 text-primary-foreground">
         <UtensilsCrossed size={20} />
@@ -97,8 +98,8 @@ export default function AppShell({
     </div>
   );
   return (
-    <div className="min-h-dvh bg-muted/50 text-foreground">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r bg-background md:flex">
+    <div className="app-canvas min-h-dvh text-foreground">
+      <aside className="app-sidebar fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r bg-background md:flex">
         {brand}
         <Separator />
         {links}
@@ -122,7 +123,7 @@ export default function AppShell({
               </SheetTrigger>
               <SheetContent
                 side="left"
-                className="w-[min(85vw,20rem)] gap-0 p-0"
+                className="app-sidebar w-[min(85vw,20rem)] gap-0 p-0"
               >
                 <SheetTitle className="sr-only">Điều hướng</SheetTitle>
                 {brand}
@@ -147,6 +148,7 @@ export default function AppShell({
                   ? "Đang đồng bộ"
                   : "Chưa kết nối"}
             </Badge>
+            <ThemeSwitcher />
             {session && (
               <Button
                 variant="text"
