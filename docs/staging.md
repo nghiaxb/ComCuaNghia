@@ -425,3 +425,40 @@ không tràn ngang/page error. Helper ban đầu thao tác khi Sheet điều hư
 animation đóng nên bị trả focus; đã chờ dialog đóng hoàn tất, cả sáu trạng thái
 đều đạt. Ảnh/bằng chứng ở ignored `.superpowers/select-popup-qa/` và
 `.superpowers/deploy-select-20261004/`. Không ghi dữ liệu thật hoặc gửi OCR/Chat.
+
+## Đổi tông màu sang Mist Blue + Coral Pink — 2026-10-04
+
+Người dùng yêu cầu bỏ tông xanh lá và theo bộ màu Mist Blue `#2f5061` + Coral
+Pink `#e57f84`. Commit `f14bcdd` chỉ thay semantic tokens sáng/tối trong
+`src/app/styles.css` và `theme-color` (`index.html`, `src/lib/theme.ts`).
+Chữ trắng trên coral chỉ 2,73:1 nên coral không làm nền nút chữ trắng. Sáng:
+nút chính và sidebar Mist Blue, coral cho mục menu đang chọn/logo và nền nhạt
+nút phụ/chip. Tối: nút chính coral chữ xanh đậm, nền/sidebar xanh đen. Giữ màu
+destructive, cảnh báo, lỗi, thành công; không đổi DOM, component, dependency,
+schema hoặc hợp đồng nghiệp vụ. Regression theme cập nhật màu chữ body mong đợi.
+
+Một bản hồng berry trung gian (commit `a5d387c`, docs `1b520dd`, staging version
+`8b4eff0f-e18e-4006-ac3f-4d734f2dcca9`) đã được thay thế theo yêu cầu amend;
+hai commit đó bị viết lại bằng force-with-lease trên `feat/webapp-v1`.
+
+Đo 16 cặp chữ/nền chính mỗi chế độ: chữ thường nhỏ nhất 4,69:1 (sáng) và
+4,74:1 (tối), viền input 3,34:1 / 4,37:1; trắng trên destructive 6,57:1 /
+4,92:1. Không phải chứng nhận accessibility toàn UI. Vì chỉ đổi token CSS, chỉ
+chạy kiểm tra có thể bị ảnh hưởng: format và 7 Playwright (theme, tương phản
+select hai chế độ, sáu màn hình không tràn ngang), configured build; không chạy
+lại lint/typecheck/unit/integration/Python. Ảnh local sáng/tối 390/1440px.
+
+Wrangler đăng nhập OAuth trên máy mới. Version đang chạy có plain var
+`OCR_WORKER_URL` đặt trên dashboard, không có trong `wrangler.staging.jsonc`,
+nên deploy dùng `--keep-vars`; cấu hình không khai báo cron nên wrangler không
+ghi đè schedules. Deploy staging version
+`0f2305f0-0d8b-4b8d-936b-d4110c310360`. Sau deploy giữ đủ tám bindings
+(ASSETS, bốn plain vars gồm `OCR_WORKER_URL`, ba secrets), handlers
+fetch/scheduled và `global_fetch_strictly_public`. PR #1 vẫn open/draft.
+
+HTTP `/order` 200 text/html (1.134 bytes), JS `index-BdX09VqU.js` 200
+text/javascript (833.982 bytes), CSS `index-BiOGvs3X.css` 200 text/css
+(81.742 bytes), cả ba khớp byte build local; health 200/ok=true/configured=true,
+snapshot chưa đăng nhập 401. Preview staging 1440px có `--primary` `#2f5061`,
+không tràn ngang/page error. Không ghi dữ liệu thật, gọi OCR thật, gửi Chat
+hoặc deploy production.
