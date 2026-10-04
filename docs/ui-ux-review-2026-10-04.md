@@ -1,0 +1,75 @@
+# Đánh giá UI/UX — 2026-10-04
+
+Giao diện hiện tại có nền tảng tốt để tiếp tục dùng: shadcn/Tailwind nhất quán,
+danh sách món gọn, desktop có giỏ bên cạnh, mobile dùng một giỏ trong Sheet.
+Nên cải thiện một số điểm về thao tác và mật độ thông tin; chưa thấy lý do để
+thay hệ thống giao diện hoặc làm lại toàn bộ thiết kế.
+
+Đánh giá trên commit ứng dụng `ec813a13138ac9b3a36f3b4bf1b3790fb0a8f74f`,
+sau khi push và deploy staging. Áp dụng skill `ui-ux-pro-max` tại
+`C:/Users/nghia/.agents/skills/ui-ux-pro-max/SKILL.md`: checklist web và tìm kiếm
+tập trung về touch target, keyboard focus, reduced motion. Giữ thiết kế đã duyệt
+và các hợp đồng nghiệp vụ hiện tại.
+
+## Phạm vi và bằng chứng
+
+- Chụp lại 35 trạng thái local ở 320/390/1440px: đăng nhập, sáu route, đặt hộ,
+  giỏ, nháp bill và OCR preview/lỗi. Không có tràn ngang hoặc JavaScript page error.
+- Xem ảnh đại diện desktop/mobile và đối chiếu code; đo DOM/computed style bằng
+  Chromium. Kiểm tra picker bằng bàn phím, Escape trả focus về nút mở giỏ,
+  giữ ghi chú khi mở lại giỏ, giữ nháp bill khi fixture cập nhật từ phiên khác.
+- OCR fixture: ảnh hiện trước khi submit, không gửi khi vừa chọn; ảnh còn sau lỗi.
+- Trên staging thực, trang đăng nhập ở 390px render được, không có page error.
+  Chỉ kiểm tra trang công khai; chưa đăng nhập hoặc thay đổi dữ liệu thật.
+- Bằng chứng local nằm trong thư mục ignored `.superpowers/local-qa/`:
+  `results.json`, `ux-measurements.json` và ảnh chụp. Đây là fixture, không phải
+  bằng chứng hai tài khoản thật nhận Supabase Realtime.
+
+## Những điểm nên cải thiện
+
+P1 là cải thiện nên làm trước trong đợt UI tiếp theo; P2 là tối ưu sau đó.
+Các mục dưới đây là đề xuất, chưa được triển khai trong lần đánh giá này.
+
+| Ưu tiên | Phát hiện và bằng chứng                                                                                                                                                                                               | Hướng cải thiện                                                                                                                                                                                                | Vị trí                                                   |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| P1      | Nút X của Sheet chỉ 16×16 CSS px ở 320/390px; tên truy cập là tiếng Anh `Close`. Khó chạm chính xác trên mobile.                                                                                                      | Mở vùng bấm thành 44×44px, giữ icon nhỏ và đổi tên thành `Đóng`; bảo đảm không đè tiêu đề và không ảnh hưởng busy guard/focus restore.                                                                         | `src/components/ui/sheet.tsx:77`                         |
+| P1      | Khi bật `prefers-reduced-motion: reduce`, Sheet vẫn có animation `enter`, duration và transition 0,5s.                                                                                                                | Bổ sung `motion-reduce` cho Sheet/overlay và kiểm tra dialog/popover cùng nhóm; giữ trình tự mở/đóng và focus.                                                                                                 | `src/components/ui/sheet.tsx:35`, `:62`                  |
+| P1      | Tab Cá nhân của quản trị đồng thời hiển thị `Lưu hồ sơ` và `Lưu cài đặt hệ thống`; nút thứ hai nằm ngoài nội dung tab. Có thể nhầm nút lưu cho dữ liệu vừa chỉnh.                                                     | Đặt nút lưu hệ thống cạnh các trường hệ thống, hiển thị rõ phạm vi/thay đổi cần lưu; giữ riêng lưu hồ sơ và consent của cách lưu đơn.                                                                          | `src/features/Settings.tsx:353`                          |
+| P1      | Trang Công nợ mẫu dài 8.015px ở 320px và 7.780px ở 390px. Cả năm cấu hình bill đều mở; nút quyết toán nằm ở y≈6.980/6.824px khi trang ở đầu.                                                                          | Tóm tắt từng ngày, mở cấu hình theo nhu cầu; giữ trạng thái nháp khi thu gọn, original expected version và cảnh báo xung đột. Đưa tổng quan tuần gần hành động quyết toán, vẫn giữ xác nhận và điều kiện khóa. | `src/features/Finance.tsx:234`                           |
+| P2      | Trong fixture đặt cơm không có banner preview, đầu danh sách món ở y≈647px tại 320px và 623px tại 390px (viewport cao 900px). Tuần hiện cả trong select lẫn dòng bên dưới; nhóm điều hướng tuần/ngày dùng nhiều hàng. | Gọn nhóm chọn tuần/ngày, bỏ thông tin lặp; giữ 44px cho thao tác chính, người nhận/lý do đặt hộ luôn rõ và dirty guard khi đổi ngày/tuần.                                                                      | `src/features/WeekPicker.tsx`, `src/features/Orders.tsx` |
+| P2      | BillEditor dùng Card nhưng các trường và nút sát cạnh ngang trong ảnh Summary/mobile. Nhịp padding khác các panel còn lại.                                                                                            | Thêm padding ngang thống nhất và nhóm trường rõ hơn; không sửa cách tính/phân bổ bill.                                                                                                                         | `src/features/BillEditor.tsx:57`                         |
+
+Nút X nhỏ là vấn đề sử dụng đã đo được, chưa tự kết luận vi phạm WCAG AA:
+[WCAG 2.2 Target Size Minimum](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html)
+có ngưỡng 24 CSS px cùng ngoại lệ khoảng cách. Đề xuất 44px nhằm dễ chạm và
+nhất quán với thao tác mobile của dự án. Reduced motion là cải thiện accessibility;
+[Animation from Interactions](https://www.w3.org/WAI/WCAG22/Understanding/animation-from-interactions.html)
+là tiêu chí AAA, không nên trình bày như lỗi AA đã được chứng nhận.
+
+## Những điểm đang tốt và cần giữ
+
+- Các nút chính/điều hướng và trường đã đo cao ít nhất 44px; tab Cài đặt đã wrap
+  đúng trong thanh tab và không chồng nội dung ở cả ba kích thước.
+- Token màu chính `#17634a` trên trắng có tương phản khoảng 7,19:1. Chữ muted
+  `#61716a` đạt khoảng 5,15:1 trên trắng và 4,68–4,83:1 trên các nền secondary/muted.
+  Đây là đo token, chưa phải audit tất cả trạng thái màu hoặc chứng nhận accessibility.
+- Tên món/giá/quantity rõ, không cần thêm hình món trang trí. Preview có nhãn chỉ xem;
+  OCR tách chọn ảnh, xem trước và gửi; báo lỗi giữ nội dung đang nhập.
+- Giỏ mobile và desktop dùng chung controller. Không đổi sang hai nguồn draft hoặc
+  thêm thư viện state/data fetching chỉ để chỉnh trình bày.
+- Các regression hiện đạt: 52 unit, 34 integration, 3 Python, 56 Playwright.
+
+## Cần kiểm tra tiếp trên thiết bị và tài khoản thật
+
+- NativeSelect mobile hiện 14px; input thông thường đo được 16px. Cần iOS Safari
+  thật để kiểm tra zoom/focus, bàn phím mềm, safe area và nút lưu/Retry. Chưa kết luận
+  có lỗi bàn phím chỉ từ Chromium desktop. Kiểm tra thêm landscape, zoom 200% và screen reader.
+- Cần hai tài khoản công ty active, dữ liệu staging dùng riêng và kịch bản được thống nhất
+  để kiểm tra Realtime, đặt hộ, conflict, nháp và reconnect. Không dùng đơn thật để phá hủy thử.
+- Cần ảnh menu được phép gửi OCR, tuần đích và phòng/nội dung Chat được phép trước khi
+  kiểm tra luồng tích hợp thật. Lần này không gọi OCR thật hoặc gửi Chat.
+- Build JS là 830.190 bytes, gzip khoảng 248KB; có thể cân nhắc lazy-load các route quản trị.
+  Đây là số đo bundle, chưa đo Core Web Vitals trên thiết bị/mạng thật.
+
+Thứ tự đề xuất: nút đóng và reduced motion → phạm vi nút lưu Cài đặt → thu gọn
+bill theo ngày với bảo toàn nháp → gọn phần chọn tuần/ngày và padding bill.

@@ -51,16 +51,13 @@ A full private-image/key request through the temporary probe was rejected by aut
 
 2026-10-03 menu management: added a visible published-menu section for the selected week with daily edit and delete actions, local row removal/discard and saved-draft deletion. Delete published menu retires active foods, preserves food IDs/order snapshots/financial history, requires a reason and confirmation, and records audit/outbox in the same idempotent command transaction. Staff-only, expected day/draft versions, manual locks and settled-week guards enforced. Publishing increments day version; editing carries source versions and saved/reopened edits retain provenance in each draft day's sourceVersion field. New menu/OCR drafts retain the existing publication flow. Chat withdrawal message identifies date and reason; real messages were not sent during tests. 36 unit, 24 integration and 12 browser tests pass, configured build/typecheck and secret scan pass; independent review has no remaining blockers. The staging migration is applied, and a rolled-back transaction with the verified admin confirmed food retirement, untouched order items/prices and audit creation; no test data or deliveries persist. UI/Worker deployed with all environment bindings and global_fetch_strictly_public preserved. Security Advisor findings were existing delivery_status admin-checked function and password protection for Google-only auth.
 
-
 2026-10-03 week selection, history and menu reconciliation: Vietnamese weekend menu preparation defaults to next Monday. Menu, Orders, Summary and Finance now share a week selector with Monday–Friday date ranges and older weeks. Employees see their own order/financial history; administrators can inspect weekly aggregates. Past dates do not automatically lock orders; manual locks and settled weeks remain authoritative.
 
 Publishing preserves food IDs when editing or matching exact OCR names. Renaming/removing a dish cancels only its ordered portions; repricing updates active orders to the new unit price while retaining quantity/notes. The unchecked clear-orders option requires confirmation and cancels all active orders throughout the target week, even for dates omitted from the new menu. Any locked day or settled week blocks clearing. Withdrawing a day menu requires explicit cancellation acknowledgement and cancels its active orders while preserving historical snapshots. Changes record actor/subject/before/after audit and queue configured Chat notifications; initial publication notification remains optional.
 
 Verification: 42 unit, 27 integration and 24 browser tests passed; configured production build/typecheck, Worker dry-run and secret scan passed. Independent final review found no blockers. Staging migration `20261003084025_reconcile_menu_orders` applied. A rollback transaction using the verified administrator confirmed repricing, rename cancellation, stored history and two order-change audit events; no test rows/deliveries persisted and no live Chat messages were sent. Authenticated clients cannot execute the reconciliation helper. Security Advisor reported only the existing admin-gated delivery_status warning and Google-only auth password-protection warning. UI/Worker deployed with all environment bindings and global_fetch_strictly_public retained.
 
-
 2026-10-03 static asset MIME incident: direct uploads incorrectly declared every multipart file as application/octet-stream. Live /order and other SPA routes returned HTML bytes with that MIME, causing browsers to download the page. Corrected the uploader to send text/html, text/javascript and text/css, with MIME included in the asset identity so cached incorrect metadata is not reused. Added scripts/upload-worker-assets.py and scripts/check-deployed-assets.py; the live header check reproduced the failure before redeployment. Future direct uploads must use this helper, then run the live MIME/attachment check (a 200/body match alone is insufficient). No app/database logic changed.
-
 
 2026-10-03 compact ordering UI: removed the decorative order banner and food illustrations. Menu dishes now appear as compact rows with name, price, visible quantity controls and selected-state highlighting. The desktop cart remains alongside the list; mobile has a fixed total/view-order/save toolbar above navigation. Week navigation is compact on mobile. Both save controls share validation and payload logic, including proxy reason, lock/settlement/read-only checks and expected order version.
 
@@ -145,3 +142,44 @@ Còn cần người dùng hỗ trợ kiểm chứng ngoài fixture:
   cần chỉ định phòng thử/nội dung được phép; các mutation có outbox phải được phối hợp
   để tránh gửi vào phòng thật ngoài ý muốn. Cấu hình credential qua môi trường, không gửi
   secret trong chat. Phiên này chưa gọi OCR thật hoặc gửi Google Chat.
+
+## Commit, push và deploy staging — 2026-10-04
+
+Người dùng yêu cầu commit/push toàn bộ thay đổi local và deploy nếu chưa deploy,
+sau đó đánh giá UI/UX bằng `ui-ux-pro-max`. Đã tiếp tục `feat/webapp-v1`, giữ PR #1
+draft, không merge main. Mục local Windows phía trên là lịch sử trước yêu cầu này.
+
+Commit ứng dụng `ec813a13138ac9b3a36f3b4bf1b3790fb0a8f74f` đã push lên origin:
+hai sửa lỗi UI, regression ở 320/390/1440px, `.gitattributes` và ghi nhận baseline.
+Chạy lại lint, format, typecheck, secret scan; 52 unit, 34 integration, 3 Python,
+56 Playwright đều đạt. Dùng `python` trên Windows vì `python3` trỏ shim Store.
+Build với hai biến Vite public lấy từ cấu hình staging và Wrangler dry-run đạt.
+
+Wrangler CLI chưa đăng nhập; deployment dùng connector Cloudflare đã xác thực và
+helper `scripts/upload-worker-assets.py`, giữ MIME của assets. Worker staging
+`com-cua-nghia-staging` nhận phiên bản `b3dd8e1f-d188-41c6-9ffe-6f8de7f2d1c0`
+tại `2026-10-04T07:34:20.858023Z`; deployment
+`ea5ce2c5-94c0-404d-8225-753f59e2ba8d` phục vụ 100% phiên bản này.
+
+Đối chiếu trước/sau: giữ đủ tám binding names/types, mọi plain-text value và
+secret bindings được kế thừa; giữ `global_fetch_strictly_public`, observability,
+SPA fallback và `/api/*` Worker-first. Không thay đổi schema hoặc gửi Chat thử.
+
+Xác minh HTTP sau deploy bằng GET chưa đăng nhập:
+
+| Đường dẫn                    | Status | MIME               | Bằng chứng                                  |
+| ---------------------------- | ------ | ------------------ | ------------------------------------------- |
+| `/order`                     | 200    | `text/html`        | 404 bytes, khớp chính xác `dist/index.html` |
+| `/assets/index-By-mODHF.js`  | 200    | `text/javascript`  | 830.190 bytes, khớp chính xác local         |
+| `/assets/index-CaBlsdPb.css` | 200    | `text/css`         | 72.079 bytes, khớp chính xác local          |
+| `/api/health`                | 200    | `application/json` | `ok=true`, `configured=true`                |
+| `/api/snapshot`              | 401    | `application/json` | Chưa đăng nhập bị từ chối                   |
+
+Client Python mặc định ban đầu nhận 403; curl và Python với browser User-Agent
+nhận đúng các kết quả trên. Chromium mở trang login staging ở 390px thành công,
+không có page error; không đăng nhập hay sửa dữ liệu thật.
+
+Đã chụp lại 35 trạng thái local, không tràn ngang/page error; báo cáo và số đo trong
+[đánh giá UI/UX ngày 2026-10-04](ui-ux-review-2026-10-04.md). Đề xuất cải thiện tiếp,
+chưa triển khai thêm thay đổi hành vi. Kiểm chứng hai tài khoản Realtime, bàn phím
+mobile và OCR/Chat thật vẫn cần người dùng hỗ trợ theo giới hạn ở trên.
