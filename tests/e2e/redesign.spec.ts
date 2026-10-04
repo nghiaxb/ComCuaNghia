@@ -75,6 +75,23 @@ test("realtime bill update preserves draft and its original version", async ({
   await page.getByRole("button", { name: "Lưu bill", exact: true }).click();
   await expect(page.getByLabel("Phiên bản bill gửi")).toHaveText("1");
 });
+test("mobile roster keeps a provided share without a meal order", async ({
+  page,
+}) => {
+  for (const width of [320, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto("/tests/fixtures/shared.html?shareWithoutOrder");
+    const roster = page.getByRole("region", { name: "Đơn của mọi người" });
+    const sponsor = roster.locator("tbody tr").filter({ hasText: "Chưa đặt" });
+    await expect(sponsor).toContainText("Nghĩa");
+    await expect(
+      sponsor.getByText("Chia: 64.000 ₫", { exact: true }),
+    ).toBeVisible();
+    const row = (await sponsor.boundingBox())!;
+    expect(row.x).toBeGreaterThanOrEqual(0);
+    expect(row.x + row.width).toBeLessThanOrEqual(width);
+  }
+});
 test("settings separates personal and administrative groups", async ({
   page,
 }) => {

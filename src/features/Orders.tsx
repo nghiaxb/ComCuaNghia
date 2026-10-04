@@ -314,6 +314,7 @@ export default function Orders({
             </small>
             <div className="quantity">
               <Button
+                variant="secondary"
                 aria-label="Giảm"
                 disabled={blocked}
                 onClick={() =>
@@ -332,6 +333,7 @@ export default function Orders({
               </Button>
               <span>{i.quantity}</span>
               <Button
+                variant="secondary"
                 aria-label="Tăng"
                 disabled={blocked}
                 onClick={() => add(i.menuItemId)}
@@ -574,6 +576,7 @@ export default function Orders({
                     </div>
                     <div className="meal-quantity">
                       <Button
+                        variant="secondary"
                         aria-label={"Giảm " + food.name}
                         disabled={blocked || !quantity}
                         onClick={() => decrease(food.id)}
@@ -584,6 +587,7 @@ export default function Orders({
                         {quantity}
                       </output>
                       <Button
+                        variant="secondary"
                         aria-label={"Thêm " + food.name}
                         disabled={blocked || quantity >= 100}
                         onClick={() => add(food.id)}

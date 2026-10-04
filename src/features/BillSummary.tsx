@@ -30,7 +30,7 @@ export default function BillSummary({ bill }: { bill: BillPreview }) {
   return (
     <Card
       role="region"
-      className="panel bill-summary"
+      className="panel bill-summary gap-4 p-4 shadow-xs md:p-5"
       aria-label="Bill trong ngày"
     >
       <div className="section-title">
@@ -61,7 +61,7 @@ export default function BillSummary({ bill }: { bill: BillPreview }) {
           <dt>Phí thêm</dt>
           <dd>{bill.state === "legacy" ? "Chưa có dữ liệu" : vnd(bill.fee)}</dd>
         </div>
-        <div>
+        <div className="bill-total">
           <dt>Tổng sau giảm giá</dt>
           <dd>{bill.total === null ? "Chưa có dữ liệu" : vnd(bill.total)}</dd>
         </div>

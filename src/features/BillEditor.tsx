@@ -45,7 +45,11 @@ export default function BillEditor({
     !covered.some((id) => sponsors.includes(id)) &&
     (!covered.length || sponsors.length > 0);
   return (
-    <Card role="region" className="bill-editor" aria-label="Cấu hình bill">
+    <Card
+      role="region"
+      className="bill-editor mb-5 gap-4 p-4 shadow-xs md:p-5"
+      aria-label="Cấu hình bill"
+    >
       {bill.version !== baseVersion && (
         <p role="alert" className="notice">
           Bill đã được chỉnh ở phiên khác. Bản nháp của bạn được giữ; tải cấu

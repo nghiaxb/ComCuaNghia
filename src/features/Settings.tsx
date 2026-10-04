@@ -33,7 +33,12 @@ export default function Settings({ data, mutate, busy, readOnly }: PageProps) {
         </div>
       </div>
       <Tabs defaultValue="personal">
-        <TabsList className="mb-5 flex w-full flex-wrap justify-start gap-1 bg-secondary p-1 group-data-[orientation=horizontal]/tabs:h-auto">
+        <TabsList
+          className={
+            "mb-5 grid w-full gap-1 bg-secondary p-1 group-data-[orientation=horizontal]/tabs:h-auto sm:flex sm:flex-wrap " +
+            (admin ? "grid-cols-2" : "grid-cols-1")
+          }
+        >
           <TabsTrigger value="personal" className="min-h-11">
             Cá nhân
           </TabsTrigger>
@@ -48,7 +53,10 @@ export default function Settings({ data, mutate, busy, readOnly }: PageProps) {
               <TabsTrigger value="members" className="min-h-11">
                 Thành viên
               </TabsTrigger>
-              <TabsTrigger value="import" className="min-h-11">
+              <TabsTrigger
+                value="import"
+                className="col-span-2 min-h-11 sm:col-span-1"
+              >
                 Import
               </TabsTrigger>
             </>

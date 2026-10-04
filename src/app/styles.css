@@ -127,6 +127,15 @@
   .section-title > span {
     @apply text-xs text-muted-foreground;
   }
+  .shared-overview .section-title,
+  .shared-overview .form-row,
+  .bill-summary .section-title,
+  .bill-summary .bill-values,
+  .bill-editor .form-row,
+  .bill-editor .field,
+  .bill-editor > .fine {
+    @apply m-0;
+  }
   .muted,
   .fine {
     @apply text-sm text-muted-foreground;
@@ -199,7 +208,7 @@
     @apply text-xs text-muted-foreground;
   }
   .stats strong {
-    @apply break-words text-xl font-semibold;
+    @apply break-words text-xl font-semibold tabular-nums;
   }
   .stats .small {
     @apply text-base;
@@ -259,7 +268,7 @@
     @apply text-xs;
   }
   .order-grid {
-    @apply mb-5 grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_340px];
+    @apply mb-5 grid min-w-0 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_340px];
   }
   .order-grid > section {
     @apply min-w-0 rounded-xl border bg-background p-4 md:p-5;
@@ -295,7 +304,7 @@
   }
   .meal-quantity button,
   .quantity button {
-    @apply min-h-11 min-w-11 px-2;
+    @apply min-h-11 min-w-11 px-2 text-primary;
   }
   .meal-quantity output {
     @apply min-w-5 text-center font-medium;
@@ -322,7 +331,7 @@
     @apply mt-2 w-full;
   }
   .cart-total {
-    @apply my-4 flex justify-between border-t pt-4 font-medium;
+    @apply my-4 flex justify-between border-t pt-4 font-medium tabular-nums;
   }
   .mobile-order-bar {
     @apply fixed inset-x-0 bottom-0 z-40 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-t bg-background p-3 shadow-lg md:hidden;
@@ -344,10 +353,13 @@
     @apply text-xs text-muted-foreground;
   }
   .bill-values dd {
-    @apply text-base font-semibold;
+    @apply text-base font-semibold tabular-nums;
   }
   .bill-values .bill-total {
     @apply bg-primary/5 text-primary;
+  }
+  .bill-total dd {
+    @apply text-xl;
   }
   .bill-shares {
     @apply mt-4 grid gap-2;
@@ -450,7 +462,13 @@
     clip-path: inset(50%);
   }
   .shared-overview tbody tr {
-    display: block;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "person action"
+      "items items"
+      "money money"
+      "activity activity";
     margin-bottom: 12px;
     border: 1px solid var(--border);
     border-radius: 10px;
@@ -462,10 +480,39 @@
     grid-template-columns: 1fr;
     gap: 4px;
     padding: 10px 12px;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 0;
     overflow-wrap: anywhere;
     white-space: normal;
     min-width: 0;
+  }
+  .shared-overview td:first-child {
+    grid-area: person;
+  }
+  .shared-overview td:nth-child(2) {
+    grid-area: items;
+    padding-top: 0;
+  }
+  .shared-overview td:nth-child(3) {
+    grid-area: money;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: baseline;
+    background: var(--secondary);
+    font-variant-numeric: tabular-nums;
+  }
+  .shared-overview td:nth-child(3)::before {
+    grid-column: 1 / -1;
+  }
+  .shared-overview td:nth-child(3) .fine {
+    margin-top: 0;
+    text-align: right;
+  }
+  .shared-overview td:nth-child(4) {
+    grid-area: activity;
+  }
+  .shared-overview td:last-child {
+    grid-area: action;
+    align-self: start;
+    padding-left: 0;
   }
   .shared-overview td::before {
     content: attr(data-label);
@@ -473,7 +520,15 @@
     font-weight: 500;
     color: var(--muted-foreground);
   }
+  .shared-overview td:first-child::before,
   .shared-overview td:last-child::before {
+    display: none;
+  }
+  .shared-overview tr[data-order-status="unordered"] td:nth-child(2),
+  .shared-overview
+    tr[data-order-status="unordered"][data-has-share="false"]
+    td:nth-child(3),
+  .shared-overview tr[data-order-status="unordered"] td:nth-child(4) {
     display: none;
   }
   .shared-overview [data-slot="table-container"] {

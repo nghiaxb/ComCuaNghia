@@ -63,6 +63,14 @@ function Fixture() {
         },
       ],
     };
+    // Synthetic snapshot projection: UI must preserve any server-provided share.
+    // This does not assert that the current allocator permits non-order sponsors.
+    if (new URLSearchParams(location.search).has("shareWithoutOrder")) {
+      d.shared.bills[0].shares = [
+        { memberId: d.member.id, amount: 64000 },
+        { memberId: "friend", amount: 0 },
+      ];
+    }
     d.orders.push({
       ...d.orders[0],
       id: "cancel",

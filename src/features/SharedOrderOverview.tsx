@@ -48,7 +48,10 @@ export default function SharedOrderOverview({
   return (
     <Card
       role="region"
-      className={"panel shared-overview" + (compact ? " compact" : "")}
+      className={
+        "panel shared-overview gap-4 p-4 shadow-xs md:p-5" +
+        (compact ? " compact" : "")
+      }
       aria-label="Đơn của mọi người"
     >
       <div className="section-title">
@@ -98,7 +101,11 @@ export default function SharedOrderOverview({
                 ),
                 share = bill.shares.find((s) => s.memberId === m.id);
               return (
-                <TableRow key={m.id}>
+                <TableRow
+                  key={m.id}
+                  data-order-status={o?.status ?? "unordered"}
+                  data-has-share={!!share}
+                >
                   <TableCell data-label="Đồng nghiệp">
                     <b>{m.display_name}</b>
                     {!m.active && <small> · Ngừng hoạt động</small>}
