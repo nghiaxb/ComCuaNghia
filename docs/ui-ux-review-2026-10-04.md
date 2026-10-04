@@ -121,3 +121,17 @@ trên một hàng và thao tác giỏ cố định; ô ngày tuần trống và 
 35 trạng thái local và preview staging đạt; 62 Playwright cùng baseline còn lại
 đạt. Chi tiết release và giới hạn kiểm chứng ở mục mới nhất trong
 [staging](staging.md#thu-gọn-màn-hình-đặt-cơm-và-cài-đặt-cách-lưu--2026-10-04).
+
+## Review bổ sung đã xử lý — 2026-10-04
+
+Đối chiếu review agent khác, đã sửa mục P1 về phạm vi nút lưu Cài đặt ở commit
+`532a6ef`: nút lưu hệ thống chỉ hiện ở Vận hành/Google Chat; Cá nhân chỉ có
+Lưu hồ sơ. Giữ payload/expected version và cfg chung giữa hai tab. Đây là lỗi
+có thể khiến lựa chọn cá nhân chưa lưu mất khi Settings dựng lại theo version.
+
+Lý do đặt hộ chuyển ngay dưới người nhận trước dãy ngày. Bảng shared mobile dùng
+semantic `data-cell`, giữ đúng layout và phần chia khi đổi thứ tự cột. Fixture
+autosave bỏ `any`. Năm regression bổ sung và 67 Playwright toàn bộ đạt, cùng
+baseline khác. 18 trạng thái local và năm tab preview staging tại 320/390/1440px
+không tràn ngang/page error; các phát hiện còn lại chưa triển khai vẫn như trên.
+Xem bằng chứng release tại mục mới nhất trong [staging](staging.md).

@@ -275,3 +275,58 @@ tại 320/390/1440px đạt, không tràn ngang/page error.
 Fixture và preview không chứng minh live Realtime. Hai tài khoản công ty thật,
 bàn phím mobile và OCR/Chat thật vẫn cần phối hợp như handoff. Không đăng nhập,
 ghi dữ liệu thật, gọi OCR thật hay gửi Chat thử trong đợt này.
+
+## Kiểm chứng và xử lý review UI — 2026-10-04
+
+Người dùng đưa review từ agent khác và yêu cầu đối chiếu. Đã xác nhận vấn đề
+nút lưu ở Cài đặt: admin thấy `Lưu cài đặt hệ thống` trong tab Cá nhân, nhưng
+handler này chỉ gửi `settings.save`; `App` dùng `data.settings.version` làm key
+cho Settings nên cấu hình hệ thống đổi phiên bản có thể dựng lại component và
+làm mất tên/cách lưu cá nhân chưa gửi. Không gọi backend thật để tái hiện mất nháp;
+kiểm tra vị trí nút bằng Chromium và đối chiếu handler/key trong code.
+
+Commit ứng dụng `532a6ef602a59775ad25348db97866fa6b3c3d40` đã push
+`feat/webapp-v1`, xử lý cả bốn nhận xét:
+
+- Tabs Cài đặt có trạng thái chọn; chỉ hiện nút lưu hệ thống ở Vận hành và Google
+  Chat. Cá nhân chỉ còn Lưu hồ sơ; Thành viên/Import không có nút lưu hệ thống.
+  Giữ nguyên handler, payload toàn bộ cfg, expected version và busy/readOnly.
+- Đưa lý do đặt hộ ngay dưới toolbar/người nhận, trước dãy ngày. Chỉ đổi vị trí
+  DOM, giữ giá trị, guard và yêu cầu lý do trước khi ghi.
+- Bảng shared mobile dùng `data-cell` cho person/items/money/activity/action
+  thay selector theo vị trí cột. Giữ phần chia của người chưa đặt khi snapshot
+  có share, kể cả 0, cùng thông tin đơn hủy/người thao tác.
+- Fixture autosave dùng `Member["order_save_mode"]` và `OrderInput["items"]`,
+  không còn `any`. Thêm chế độ admin/busy/readonly, ghi nhận phiên bản mutation
+  và wrap output JSON của fixture; không đổi contracts/runtime của ứng dụng.
+
+Năm browser regression mới kiểm tra phạm vi nút lưu, cfg sửa ở cả hai tab và
+expected version, trạng thái disabled, vị trí/giữ lý do và bảng mobile sau đổi
+thứ tự cột. Ba regression đầu về lỗi scope/vị trí/cột đã RED trước sửa rồi GREEN;
+hai kiểm tra payload/disabled bảo vệ hành vi cũ. 36 bài liên quan đạt; toàn bộ
+release baseline đạt: npm ci/Chromium, lint, format, typecheck, secret scan,
+52 unit, 34 integration, 3 Python, 67 Playwright, configured build và Worker
+dry-run. Hai high Playwright và cảnh báo chunk lớn vẫn như mục trước; không đổi
+dependencies/lockfile. Review độc lập đọc code không còn lỗi chặn.
+
+Visual QA local gồm 18 ảnh: năm tab Cài đặt và đặt hộ qua picker bàn phím tại
+320/390/1440px. Không tràn ngang/page error; nút lưu hệ thống cao ít nhất 44px,
+tab mobile vẫn hai cột và Import trải hàng. Ảnh ở ignored
+`.superpowers/review-feedback-qa/`.
+
+Deploy staging giữ bindings/secrets/flags/routing bằng connector Cloudflare và
+helper assets: version `05886dc4-54c7-4416-a69a-8cd15b5f1bdf`, deployment
+`40ab6b87-30ec-4558-9eea-0fcbecd38bda`, 100% tại
+`2026-10-04T13:59:55.633916Z`. Đối chiếu trước/sau giữ tám binding names/types,
+plain values, secret inheritance, observability, `global_fetch_strictly_public`,
+SPA fallback và `/api/*` Worker-first. PR #1 vẫn open/draft, không merge main.
+
+Sau deploy, HTML `/order` 200 (404 bytes), JS `index-5jKzczWM.js` 200
+`text/javascript` (830.519 bytes), CSS `index-CK-gG4bh.css` 200 `text/css`
+(76.953 bytes) khớp chính xác build. Health 200/ok=true/configured=true;
+snapshot chưa đăng nhập 401. Preview staging kiểm tra đủ năm tab Cài đặt và
+semantic cells của roster ở 320/390/1440px, không tràn ngang/page error.
+
+Không ghi dữ liệu thật/gửi OCR hoặc Chat; fixture và preview không chứng minh
+live Realtime hoặc bàn phím thiết bị thật. Giới hạn kiểm chứng ngoài vẫn theo
+handoff.
