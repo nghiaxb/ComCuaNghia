@@ -12,13 +12,13 @@ import Orders from "../../src/features/Orders";
 import Settings from "../../src/features/Settings";
 import AppShell from "../../src/app/AppShell";
 import { demo } from "../../src/lib/demo";
-import type { Order } from "../../shared/contracts";
+import type { Member, Order, OrderInput } from "../../shared/contracts";
 import "../../src/app/styles.css";
 const params = new URLSearchParams(location.search);
 function Fixture() {
   const [data, setData] = useState(() => {
     const d = structuredClone(demo);
-    d.member.role = "employee";
+    d.member.role = params.has("admin") ? "admin" : "employee";
     d.member.order_save_mode = params.has("manual") ? "manual" : "autosave";
     d.member.can_manage_finance = false;
     if (!params.has("shell")) d.days = d.days.slice(0, 2);
@@ -98,14 +98,18 @@ function Fixture() {
       {settings ? (
         <Settings
           data={data}
-          busy={false}
-          readOnly={false}
-          mutate={async (k, p) => {
-            setRequest(JSON.stringify({ k, p }));
-            setData((d) => ({
-              ...d,
-              member: { ...d.member, order_save_mode: p.orderSaveMode as any },
-            }));
+          busy={params.has("busy")}
+          readOnly={params.has("preview")}
+          mutate={async (k, p, version) => {
+            setRequest(JSON.stringify({ k, p, version }));
+            if (k === "profile.save")
+              setData((d) => ({
+                ...d,
+                member: {
+                  ...d.member,
+                  order_save_mode: p.orderSaveMode as Member["order_save_mode"],
+                },
+              }));
             return {};
           }}
         />
@@ -141,7 +145,7 @@ function Fixture() {
               items:
                 r.kind === "order.cancel"
                   ? old!.items
-                  : (r.payload.items as any[]).map((i) => ({
+                  : (r.payload.items as OrderInput["items"]).map((i) => ({
                       ...i,
                       name:
                         ref.current.foods.find((f) => f.id === i.menuItemId)
@@ -163,7 +167,7 @@ function Fixture() {
                 ...d,
                 member: {
                   ...d.member,
-                  order_save_mode: p.orderSaveMode as any,
+                  order_save_mode: p.orderSaveMode as Member["order_save_mode"],
                 },
               }));
             return {};
@@ -171,7 +175,9 @@ function Fixture() {
         />
       )}
       <output aria-label="Số lần ghi">{count}</output>
-      <output aria-label="Yêu cầu">{request}</output>
+      <output aria-label="Yêu cầu" className="block break-all">
+        {request}
+      </output>
     </>
   );
   return params.has("shell") ? (

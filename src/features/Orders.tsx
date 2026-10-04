@@ -449,6 +449,23 @@ export default function Orders({
           />
         </div>
       </div>
+      {proxy && (
+        <section className="recipient-toolbar">
+          <Field label="Lý do đặt hoặc chỉnh hộ">
+            <Input
+              value={reason}
+              maxLength={500}
+              disabled={blocked}
+              placeholder="Đồng nghiệp nhờ đặt…"
+              onChange={(e) => setReason(e.target.value)}
+            />
+          </Field>
+          <p className="fine">
+            Ghi nhận bạn là người thao tác, {recipient?.display_name} là người
+            nhận cơm. Đơn hiện có sẽ được tải để bạn chỉnh.
+          </p>
+        </section>
+      )}
       <div className="days">
         {days.map((d) => (
           <Button
@@ -482,23 +499,6 @@ export default function Orders({
           </Field>
         )}
       </div>
-      {proxy && (
-        <section className="recipient-toolbar">
-          <Field label="Lý do đặt hoặc chỉnh hộ">
-            <Input
-              value={reason}
-              maxLength={500}
-              disabled={blocked}
-              placeholder="Đồng nghiệp nhờ đặt…"
-              onChange={(e) => setReason(e.target.value)}
-            />
-          </Field>
-          <p className="fine">
-            Ghi nhận bạn là người thao tác, {recipient?.display_name} là người
-            nhận cơm. Đơn hiện có sẽ được tải để bạn chỉnh.
-          </p>
-        </section>
-      )}
       <div className="order-grid">
         <section>
           <div className="section-title">

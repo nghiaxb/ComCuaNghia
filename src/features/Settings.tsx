@@ -20,6 +20,7 @@ export default function Settings({ data, mutate, busy, readOnly }: PageProps) {
   );
   const [hook, setHook] = useState("");
   const [hookName, setHookName] = useState("");
+  const [tab, setTab] = useState("personal");
   const admin = data.member.role === "admin";
   const change = (key: string, value: unknown) =>
     setCfg((old) => ({ ...old, [key]: value }));
@@ -32,7 +33,7 @@ export default function Settings({ data, mutate, busy, readOnly }: PageProps) {
           <p>Điều chỉnh quy trình, thành viên và thông báo ở một nơi.</p>
         </div>
       </div>
-      <Tabs defaultValue="personal">
+      <Tabs value={tab} onValueChange={setTab}>
         <TabsList
           className={
             "mb-5 grid w-full gap-1 bg-secondary p-1 group-data-[orientation=horizontal]/tabs:h-auto sm:flex sm:flex-wrap " +
@@ -361,18 +362,20 @@ export default function Settings({ data, mutate, busy, readOnly }: PageProps) {
                 </p>
               </section>
             </TabsContent>
-            <div className="my-4">
-              {" "}
-              <Button
-                className="primary"
-                disabled={busy || readOnly}
-                onClick={() =>
-                  void mutate("settings.save", cfg, data.settings.version)
-                }
-              >
-                Lưu cài đặt hệ thống
-              </Button>
-            </div>
+            {(tab === "operation" || tab === "chat") && (
+              <div className="my-4">
+                {" "}
+                <Button
+                  className="primary"
+                  disabled={busy || readOnly}
+                  onClick={() =>
+                    void mutate("settings.save", cfg, data.settings.version)
+                  }
+                >
+                  Lưu cài đặt hệ thống
+                </Button>
+              </div>
+            )}
           </>
         )}
       </Tabs>

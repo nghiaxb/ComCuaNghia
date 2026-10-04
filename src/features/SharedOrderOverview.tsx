@@ -106,7 +106,7 @@ export default function SharedOrderOverview({
                   data-order-status={o?.status ?? "unordered"}
                   data-has-share={!!share}
                 >
-                  <TableCell data-label="Đồng nghiệp">
+                  <TableCell data-cell="person" data-label="Đồng nghiệp">
                     <b>{m.display_name}</b>
                     {!m.active && <small> · Ngừng hoạt động</small>}
                     <div className="fine">
@@ -117,7 +117,7 @@ export default function SharedOrderOverview({
                           : "Chưa đặt"}
                     </div>
                   </TableCell>
-                  <TableCell data-label="Đơn / ghi chú">
+                  <TableCell data-cell="items" data-label="Đơn / ghi chú">
                     {o?.items.map((i) => (
                       <div key={i.menuItemId}>
                         {i.name} ×{i.quantity}
@@ -125,7 +125,10 @@ export default function SharedOrderOverview({
                       </div>
                     )) ?? "—"}
                   </TableCell>
-                  <TableCell data-label="Tiền món / phần chia">
+                  <TableCell
+                    data-cell="money"
+                    data-label="Tiền món / phần chia"
+                  >
                     {o?.status === "active"
                       ? vnd(
                           o.items.reduce(
@@ -138,7 +141,10 @@ export default function SharedOrderOverview({
                       Chia: {share ? vnd(share.amount) : "—"}
                     </div>
                   </TableCell>
-                  <TableCell data-label="Thao tác gần nhất">
+                  <TableCell
+                    data-cell="activity"
+                    data-label="Thao tác gần nhất"
+                  >
                     {actor ? (
                       <>
                         <span>
@@ -155,7 +161,7 @@ export default function SharedOrderOverview({
                       "—"
                     )}
                   </TableCell>
-                  <TableCell data-label="">
+                  <TableCell data-cell="action" data-label="">
                     {day &&
                       !day.locked &&
                       bill.state === "preview" &&

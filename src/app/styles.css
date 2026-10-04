@@ -531,31 +531,31 @@
     white-space: normal;
     min-width: 0;
   }
-  .shared-overview td:first-child {
+  .shared-overview td[data-cell="person"] {
     grid-area: person;
   }
-  .shared-overview td:nth-child(2) {
+  .shared-overview td[data-cell="items"] {
     grid-area: items;
     padding-top: 0;
   }
-  .shared-overview td:nth-child(3) {
+  .shared-overview td[data-cell="money"] {
     grid-area: money;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: baseline;
     background: var(--secondary);
     font-variant-numeric: tabular-nums;
   }
-  .shared-overview td:nth-child(3)::before {
+  .shared-overview td[data-cell="money"]::before {
     grid-column: 1 / -1;
   }
-  .shared-overview td:nth-child(3) .fine {
+  .shared-overview td[data-cell="money"] .fine {
     margin-top: 0;
     text-align: right;
   }
-  .shared-overview td:nth-child(4) {
+  .shared-overview td[data-cell="activity"] {
     grid-area: activity;
   }
-  .shared-overview td:last-child {
+  .shared-overview td[data-cell="action"] {
     grid-area: action;
     align-self: start;
     padding-left: 0;
@@ -566,15 +566,15 @@
     font-weight: 500;
     color: var(--muted-foreground);
   }
-  .shared-overview td:first-child::before,
-  .shared-overview td:last-child::before {
+  .shared-overview td[data-cell="person"]::before,
+  .shared-overview td[data-cell="action"]::before {
     display: none;
   }
-  .shared-overview tr[data-order-status="unordered"] td:nth-child(2),
+  .shared-overview tr[data-order-status="unordered"] td[data-cell="items"],
   .shared-overview
     tr[data-order-status="unordered"][data-has-share="false"]
-    td:nth-child(3),
-  .shared-overview tr[data-order-status="unordered"] td:nth-child(4) {
+    td[data-cell="money"],
+  .shared-overview tr[data-order-status="unordered"] td[data-cell="activity"] {
     display: none;
   }
   .shared-overview [data-slot="table-container"] {
