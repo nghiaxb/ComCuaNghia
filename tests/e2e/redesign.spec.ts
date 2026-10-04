@@ -115,6 +115,39 @@ test("settlement uses an explicit accessible confirmation", async ({
     page.getByRole("alertdialog", { name: "Quyết toán tuần và ghi công nợ?" }),
   ).toBeVisible();
 });
+test("settings tabs wrap within their bar above the active panel", async ({
+  page,
+}) => {
+  for (const width of [320, 390, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/order");
+    await page
+      .getByRole("button", { name: "Xem trước giao diện với dữ liệu mẫu →" })
+      .click();
+    if (width < 768)
+      await page.getByRole("button", { name: "Mở điều hướng" }).click();
+    await page.getByRole("link", { name: "Cài đặt", exact: true }).click();
+    await expect(page.getByRole("dialog", { name: "Điều hướng" })).toHaveCount(
+      0,
+    );
+    const tabs = page.getByRole("tablist");
+    await expect(tabs.getByRole("tab")).toHaveCount(5);
+    const bar = (await tabs.boundingBox())!;
+    for (const tab of await tabs.getByRole("tab").all()) {
+      const box = (await tab.boundingBox())!;
+      expect(box.y).toBeGreaterThanOrEqual(bar.y);
+      expect(box.y + box.height).toBeLessThanOrEqual(bar.y + bar.height);
+      expect(box.height).toBeGreaterThanOrEqual(44);
+    }
+    const panel = (await page.getByRole("tabpanel").boundingBox())!;
+    expect(panel.y).toBeGreaterThanOrEqual(bar.y + bar.height);
+    await tabs.getByRole("tab", { name: "Import", exact: true }).click();
+    await expect(
+      tabs.getByRole("tab", { name: "Import", selected: true }),
+    ).toBeVisible();
+    await expect(page.getByRole("tabpanel")).toBeVisible();
+  }
+});
 test("day selection exposes one current day and distinct unselected controls", async ({
   page,
 }) => {

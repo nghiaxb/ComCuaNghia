@@ -250,7 +250,10 @@ export default function App() {
             </Button>
           )}
           <p className="fine">Dành cho tài khoản @rivercrane.vn</p>
-          <Button className="text-button" onClick={() => setPreview(true)}>
+          <Button
+            className="text-button h-auto max-w-full whitespace-normal"
+            onClick={() => setPreview(true)}
+          >
             Xem trước giao diện với dữ liệu mẫu →
           </Button>
         </section>

@@ -33,7 +33,7 @@ export default function Settings({ data, mutate, busy, readOnly }: PageProps) {
         </div>
       </div>
       <Tabs defaultValue="personal">
-        <TabsList className="mb-5 flex h-auto w-full flex-wrap justify-start gap-1 bg-secondary p-1">
+        <TabsList className="mb-5 flex w-full flex-wrap justify-start gap-1 bg-secondary p-1 group-data-[orientation=horizontal]/tabs:h-auto">
           <TabsTrigger value="personal" className="min-h-11">
             Cá nhân
           </TabsTrigger>

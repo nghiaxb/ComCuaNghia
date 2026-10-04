@@ -91,3 +91,57 @@ Fresh verification: npm ci, zero-warning lint, format check, typecheck, secret s
 Implementation rulings: official shadcn registry sources were fetched manually after CLI proxy failure; wrappers are ActionButton/Modal to avoid case-only TypeScript filename collisions; one local cartContent/controller supplies desktop or mobile rendering; legacy CSS was replaced with Tailwind tokens/@apply layouts because unlayered rules overrode utilities. No Redux/query-cache/schema migration.
 
 Cloudflare staging release: `index-DhCyfFi2.js` / `index-BCfLVIdQ.css`, Worker updated with SPA asset routing and `/api/*` Worker-first. Deployment settings retain all eight binding names/types and `global_fetch_strictly_public`. Source remains feat/webapp-v1 and draft PR #1; main is not merged.
+
+## Tiếp quản local Windows — 2026-10-04 (không deploy)
+
+Checkout bắt đầu ở `feat/webapp-v1`, commit `844cde7`, worktree sạch. Đã đọc AGENTS.md,
+handoff, README, mục staging mới nhất và spec/plan redesign 2026-10-04, shared overview/autosave
+2026-10-03; tiếp tục code hiện tại. Thư mục `.codex/skills/ui-ux-pro-max` xuất hiện trong
+phiên được giữ nguyên, không stage. Không commit/push, sửa PR, merge main hoặc ghi cloud.
+Thông tin staging ở mục trước là bằng chứng lịch sử, chưa được kiểm chứng lại từ xa trong phiên này.
+
+Môi trường: Node `24.21.0`, npm `11.19.0`, Python `3.14.7`. `python3` trên máy này trỏ
+vào shortcut Microsoft Store; cùng bộ unittest được chạy bằng `python`. `npm ci`, Vitest,
+Playwright, Vite và Wrangler gặp lỗi sandbox `spawn EPERM`/cache permission; chạy lại ngoài
+sandbox với quyền được cấp đã thành công. Chromium Playwright đã được cài. Không có
+`.env.local`/`.dev.vars`; preview và browser fixtures dùng dữ liệu local.
+
+Lỗi đã tái hiện và sửa:
+
+- Git `core.autocrlf=true` khiến format check báo 112 file CRLF. Thêm `.gitattributes`
+  với `text=auto eol=lf`, chuẩn hoá các file được Prettier kiểm tra; không đổi nội dung
+  nghiệp vụ. Các file chỉ đổi metadata checkout đã được làm mới index; staged diff rỗng.
+- Nút preview ở màn hình kết nối hệ thống vượt thẻ và làm trang rộng 321px khi viewport
+  320px. Cho chữ xuống dòng trong chiều rộng thẻ, giữ vùng chạm tối thiểu 44px.
+- Tab Cài đặt xuống hai dòng ở 320/390px nhưng chiều cao mặc định của tab ngang ghi đè
+  `h-auto`, làm hàng dưới chồng lên nội dung. Override đúng modifier ở consumer Cài đặt.
+  Regression kiểm tra tab nằm trong khung, nội dung nằm phía dưới và từng tab cao ít nhất 44px.
+
+Cả hai UI regression đều thất bại đúng lỗi trước sửa và qua sau sửa. Shell kiểm tra cả
+sáu route tại 320/390/1440px; đã xem ảnh render đại diện desktop/mobile và ảnh sau sửa.
+QA bổ sung kiểm tra chọn người bằng bàn phím, ghi chú giỏ mobile và focus khi Escape,
+giữ nháp bill khi có cập nhật mô phỏng, preview ảnh không gửi trước submit và giữ ảnh
+khi OCR fixture trả lỗi. 35 ảnh QA local, cùng ảnh Cài đặt được chụp lại sau sửa, nằm
+trong `.superpowers/local-qa/` (ignored, không phải artifact cloud); kiểm tra không tràn
+ngang và không có page error đã qua.
+
+Kết quả thực chạy trong phiên: npm ci; lint 0 cảnh báo; format check; typecheck;
+secret scan; 52 unit, 34 PGlite integration, 3 Python và 56 Playwright tests qua.
+Sau sửa UI cuối đã chạy lại lint/format/typecheck, toàn bộ Playwright, build với hai biến
+public từ `wrangler.staging.jsonc` và `npx wrangler deploy --config wrangler.staging.jsonc
+--dry-run --minify`; exit 0. Build local: JS 830.19kB / 248.42kB gzip, vẫn có cảnh báo
+chunk lớn. Dry-run chỉ đóng gói local, không xác minh secrets/bindings đang triển khai.
+Review read-only độc lập cuối không phát hiện Critical/Important/Minor trong diff này;
+kết luận đủ điều kiện bàn giao local, không xác nhận QA live hoặc quyền merge/deploy.
+
+Còn cần người dùng hỗ trợ kiểm chứng ngoài fixture:
+
+- Hai phiên Google công ty đã xác minh, hai thành viên active, với tuần/ngày/người test
+  staging được thống nhất và dữ liệu dùng riêng. Theo dõi đặt/sửa/huỷ/đặt hộ, roster/bill,
+  conflict/giữ nháp và reconnect. Fixtures hai trang không chứng minh live Supabase Realtime.
+- Thiết bị iOS Safari/Android Chrome thực để kiểm tra bàn phím mềm, safe area, ô lý do,
+  ghi chú và thao tác lưu/Retry trong Sheet.
+- Ảnh menu được phép gửi OCR, tuần đích và người có quyền soát/công bố. Kiểm thử Chat
+  cần chỉ định phòng thử/nội dung được phép; các mutation có outbox phải được phối hợp
+  để tránh gửi vào phòng thật ngoài ý muốn. Cấu hình credential qua môi trường, không gửi
+  secret trong chat. Phiên này chưa gọi OCR thật hoặc gửi Google Chat.
