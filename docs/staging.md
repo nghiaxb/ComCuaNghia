@@ -330,3 +330,60 @@ semantic cells của roster ở 320/390/1440px, không tràn ngang/page error.
 Không ghi dữ liệu thật/gửi OCR hoặc Chat; fixture và preview không chứng minh
 live Realtime hoặc bàn phím thiết bị thật. Giới hạn kiểm chứng ngoài vẫn theo
 handoff.
+
+## Styling mới và giao diện theo thiết bị — 2026-10-04
+
+Người dùng yêu cầu áp dụng `ui-styling` và `ui-ux-pro-max`, làm đẹp UI và thêm
+sáng/tối mặc định theo máy; đã chọn đề xuất xanh lá đậm, nền sáng ấm và nền tối
+màu than xanh. Commit ứng dụng `f0ddabf5823dd7fd7d72bc8cf57a0bc9752209d5`
+đã push `feat/webapp-v1`. Dùng semantic tokens của Tailwind/shadcn hiện có:
+sidebar xanh, phân cấp chữ/card, shadow nhẹ, pill số món, tổng tiền nổi bật và
+màu cảnh báo/lỗi/thành công phù hợp cả hai chế độ. Không thêm dependency/schema.
+
+Giao diện có ba lựa chọn `Theo thiết bị`, `Sáng`, `Tối`, đổi tại nút ở header
+hoặc Cài đặt → Cá nhân → Giao diện. Mặc định theo thiết bị; áp dụng trước khi
+React tải để tránh hiện sai chế độ lúc đầu, theo thay đổi của OS và đồng bộ tab.
+Lựa chọn lưu riêng trên trình duyệt, áp dụng ngay, không cần Lưu hồ sơ và không
+gửi mutation. Khi storage bị chặn vẫn đổi được trong tab. Cách lưu đơn vẫn chỉ
+ở Cài đặt cá nhân; không đổi autosave, consent, requestId/retry, phiên bản,
+dirty guards hoặc draft controller.
+
+NativeSelect mobile dùng chữ 16px; Sheet có vùng đóng 44×44px và nhãn `Đóng`.
+CSS tôn trọng reduced motion. Review độc lập tái hiện nút đổi giao diện chỉ cao
+36px do PopoverTrigger đổi data-slot; đã thêm min-height trực tiếp và regression
+44×44px tại 320px. Không còn finding chặn sau sửa và kiểm thử.
+
+Baseline thực chạy trên Node 24: npm ci/Chromium, lint, format (cả index.html),
+typecheck, secret scan, 52 unit, 34 integration, 3 Python, 71 Playwright,
+configured build và staging Worker dry-run đều đạt. Bốn regression theme đã RED
+trước triển khai rồi GREEN, kiểm tra trước React, OS/override/persistence,
+đồng bộ tab/storage bị chặn và giữ nháp không ghi khi đổi giao diện. Windows
+dùng `python`; hai high Playwright còn như các release trước, không đổi lockfile.
+Build JS 833.982 bytes / gzip 249,92KB vẫn có cảnh báo chunk lớn.
+
+Local QA gồm 70 trạng thái ở 320/390/1440px cho hai chế độ: sáu màn hình/login,
+picker bàn phím, giỏ/focus, nháp bill và OCR preview/lỗi bằng fixture. Không
+tràn ngang/page error. Kiểm tra lại fixture AppShell năm món/hai món cũ sau
+sửa cuối: tại 1440×800, đáy danh sách món y=653px và nút lưu y=746,25px,
+vẫn trong khung nhìn đầu; mobile giữ giỏ Sheet và focus. Đo 28 cặp token chữ/nền
+của hai chế độ, nhỏ nhất 4,63:1; đây không phải chứng nhận accessibility toàn UI.
+Ảnh/số đo ở ignored `.superpowers/theme-light-qa/`, `theme-dark-qa/`,
+`theme-compact-light/`, `theme-compact-dark/` và `theme-contrast.json`.
+
+Deploy staging qua connector/helper assets: version
+`52196a53-572b-4fa7-af87-25423b1adb6a`, deployment
+`0ee5986d-0663-4481-860e-8baee3f99c94`, 100% tại
+`2026-10-04T14:36:04.31626Z`. Đối chiếu trước/sau giữ tám bindings names/types,
+plain values, secret inheritance, observability và `global_fetch_strictly_public`;
+metadata giữ SPA fallback và `/api/*` Worker-first. PR #1 vẫn open/draft.
+
+Sau deploy: HTML `/order` 200 `text/html` (1.134 bytes), JS `index-DYUU4QBi.js`
+200 `text/javascript` (833.982 bytes), CSS `index-BGjv8EVX.css` 200 `text/css`
+(81.411 bytes), cả ba khớp byte local. Health 200/ok=true/configured=true;
+snapshot chưa đăng nhập 401. Chromium preview staging kiểm tra cả sáu màn hình
+và năm tab Cài đặt ở hai chế độ × 320/390/1440px, không tràn ngang/page error;
+default theo OS, override sau reload và nút theme/đóng mobile 44px đều đạt.
+Bằng chứng ở ignored `.superpowers/deploy-theme-20261004/`.
+Không dùng dữ liệu thật, gọi OCR thật, gửi Chat
+hoặc deploy production. Hai tài khoản Realtime, bàn phím mobile và OCR/Chat
+thật vẫn cần phối hợp theo handoff.

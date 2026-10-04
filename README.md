@@ -59,6 +59,10 @@ The app uses Tailwind v4 with the Vite plugin and shadcn/ui component source in
 and the `@/*` alias support additional components. Theme tokens and reusable layout
 styles are in `src/app/styles.css`; there is one visual system across all routes.
 
+Giao diện mặc định sáng/tối theo thiết bị. Đổi tại nút giao diện ở header hoặc
+Cài đặt → Cá nhân → Giao diện; lựa chọn áp dụng ngay và lưu trên trình duyệt,
+không cần bấm Lưu hồ sơ.
+
 Reuse `ActionButton.tsx` for existing semantic variants and native button props. Its
 default type is `button`; submission requires explicit `type="submit"`. `Modal.tsx`
 wraps the shadcn/Radix dialog with busy/Escape protection and focus restoration.

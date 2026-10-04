@@ -135,3 +135,36 @@ autosave bỏ `any`. Năm regression bổ sung và 67 Playwright toàn bộ đ�
 baseline khác. 18 trạng thái local và năm tab preview staging tại 320/390/1440px
 không tràn ngang/page error; các phát hiện còn lại chưa triển khai vẫn như trên.
 Xem bằng chứng release tại mục mới nhất trong [staging](staging.md).
+
+## Styling sáng/tối theo thiết bị đã triển khai — 2026-10-04
+
+Người dùng chọn đề xuất xanh lá đậm, nền sáng ấm và nền tối màu than xanh.
+Commit `f0ddabf` cập nhật semantic tokens, sidebar, phân cấp chữ/card, shadow
+nhẹ, số món và tổng tiền; giữ bố cục đặt cơm gọn cùng shadcn/Tailwind hiện có.
+Không thêm ảnh món, framework hoặc thay đổi nghiệp vụ.
+
+Nút header và Cài đặt → Cá nhân → Giao diện có `Theo thiết bị` (mặc định),
+`Sáng`, `Tối`. Lựa chọn áp dụng ngay và lưu trên trình duyệt; chế độ thiết bị
+theo OS khi thay đổi, cả trước khi React tải. Đổi theme không ghi hồ sơ/đơn,
+không dựng lại controller và không làm mất nháp; đồng bộ giữa các tab.
+
+Mục P1 về vùng bấm đóng Sheet và reduced motion đã xử lý: đóng 44×44px,
+nhãn tiếng Việt, giảm animation/transition theo thiết bị. NativeSelect mobile
+đổi từ 14px sang 16px; kiểm tra bàn phím/zoom Safari thật vẫn cần thực hiện.
+Review tái hiện theme trigger cao 36px do PopoverTrigger đổi data-slot;
+đã sửa lên 44px trực tiếp và kiểm tra regression tại 320px. Đo 28 cặp token
+chữ/nền cho hai chế độ đạt tối thiểu 4,63:1, không khẳng định audit toàn UI.
+
+Baseline đạt: 52 unit, 34 integration, 3 Python, 71 Playwright, cùng lint,
+format, typecheck, secret scan, configured build và Worker dry-run. Local
+kiểm tra 70 trạng thái sáng/tối tại 320/390/1440px không tràn ngang/page error;
+picker bàn phím, focus/nháp giỏ, nháp bill và OCR preview/lỗi bằng fixture đạt.
+Fixture desktop 1440×800 giữ đáy danh sách món 653px và nút lưu 746,25px.
+Preview staging kiểm tra sáu màn hình và năm tab Cài đặt ở cả hai chế độ,
+cả ba kích thước, default theo OS/override/reload và vùng bấm 44px đều đạt.
+
+Build JS 833.982 bytes (gzip 249,92KB), cảnh báo chunk và hai high Playwright
+vẫn còn. Thu gọn cấu hình bill theo ngày ở trang Công nợ vẫn là đề xuất riêng;
+đợt này không đổi hành vi form/nháp bill. Hai tài khoản Realtime thật, bàn phím
+mobile và OCR/Chat thật chưa được kiểm chứng. Xem release tại mục mới nhất
+trong [staging](staging.md).
