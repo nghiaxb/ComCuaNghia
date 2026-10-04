@@ -387,3 +387,41 @@ Bằng chứng ở ignored `.superpowers/deploy-theme-20261004/`.
 Không dùng dữ liệu thật, gọi OCR thật, gửi Chat
 hoặc deploy production. Hai tài khoản Realtime, bàn phím mobile và OCR/Chat
 thật vẫn cần phối hợp theo handoff.
+
+## Sửa menu select khó đọc ở chế độ tối — 2026-10-04
+
+Người dùng gửi ảnh select Giao diện có chữ sáng trên nền xám nhạt khi mở.
+Chromium local tái hiện đúng popup: option không có nền riêng (transparent),
+menu native lấy nền từ select bán trong suốt trong khi chữ theo dark theme.
+Commit `6a931fadb7a3ebb91927826765f853c741e867ef` đặt nền đặc và chữ theo
+semantic tokens cho `select option/optgroup`, áp dụng toàn ứng dụng. Giữ native
+select, keyboard/onChange, lưu theme/cách lưu đơn và mọi hợp đồng nghiệp vụ.
+Không thêm thư viện hoặc đổi DOM/controller.
+
+Regression mới đã RED với alpha nền option=0 rồi GREEN sau sửa, kiểm tra nền
+đặc và tương phản >=4,5:1 cho các lựa chọn Cách lưu/Giao diện ở cả sáng/tối,
+320/390/1440px, kể cả theme ngược với OS; End đổi theme không gửi mutation.
+Màu thực đo: dark chữ #e9f1e9/nền #19271f (13,49:1), light chữ #20352b/nền
+#fffefa (12,96:1). Chromium chụp popup trước/sau xác nhận dễ đọc. Chưa khẳng định
+mọi native picker của Safari/thiết bị thật đều được kiểm chứng.
+
+Node24/npm ci/Chromium, lint, format, typecheck, secret scan, 52 unit,
+34 integration, 3 Python, 72 Playwright, configured build và Worker dry-run
+đều đạt. 20 bài liên quan theme/contrast/autosave/density đạt trước baseline.
+Hai high Playwright và cảnh báo chunk JS vẫn như trước; lockfile không đổi.
+
+Deploy staging version `5467a4cc-0b8b-4349-85d2-8f259ff78c0d`, deployment
+`ea2fb655-e876-45c8-a1bd-4803c796c888`, 100% tại
+`2026-10-04T14:47:18.950626Z`. Giữ tám binding names/types, plain values,
+secret inheritance, observability, `global_fetch_strictly_public`, SPA fallback
+và `/api/*` Worker-first. PR #1 vẫn open/draft.
+
+HTTP `/order` 200 HTML (1.134 bytes), JS `index-CmwPC8tV.js` 200
+text/javascript (833.982 bytes), CSS `index-BeAgs3lH.css` 200 text/css
+(81.742 bytes) khớp chính xác build; health 200/ok=true/configured=true,
+snapshot chưa đăng nhập 401. Preview staging mở popup bằng Alt+ArrowDown,
+đóng Escape/giữ focus và đo option ở cả hai chế độ × ba kích thước: đạt,
+không tràn ngang/page error. Helper ban đầu thao tác khi Sheet điều hướng còn
+animation đóng nên bị trả focus; đã chờ dialog đóng hoàn tất, cả sáu trạng thái
+đều đạt. Ảnh/bằng chứng ở ignored `.superpowers/select-popup-qa/` và
+`.superpowers/deploy-select-20261004/`. Không ghi dữ liệu thật hoặc gửi OCR/Chat.

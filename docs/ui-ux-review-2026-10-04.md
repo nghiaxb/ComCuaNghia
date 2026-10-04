@@ -168,3 +168,17 @@ vẫn còn. Thu gọn cấu hình bill theo ngày ở trang Công nợ vẫn là
 đợt này không đổi hành vi form/nháp bill. Hai tài khoản Realtime thật, bàn phím
 mobile và OCR/Chat thật chưa được kiểm chứng. Xem release tại mục mới nhất
 trong [staging](staging.md).
+
+## Select mở ra ở chế độ tối đã sửa — 2026-10-04
+
+Phản hồi ảnh người dùng và Chromium local xác nhận popup native select có chữ
+sáng trên nền xám nhạt. Đã đặt nền đặc/chữ theo token cho mọi option/optgroup
+ở commit `6a931fa`, giữ native select và thao tác bàn phím. Popup dark hiện có
+chữ #e9f1e9 trên nền #19271f; popup light có chữ #20352b trên nền #fffefa.
+Tương phản chữ/nền lần lượt 13,49:1 và 12,96:1. Không khẳng định audit toàn UI
+hay kiểm chứng native picker trên Safari thật.
+
+Regression đã RED rồi GREEN; toàn bộ 72 Playwright và baseline khác đạt.
+Preview staging kiểm tra popup mở/đóng bằng bàn phím, giữ focus và không tràn
+ngang ở cả sáng/tối × 320/390/1440px. Chi tiết tại mục mới nhất trong
+[staging](staging.md).
