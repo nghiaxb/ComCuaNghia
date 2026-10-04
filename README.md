@@ -2,7 +2,7 @@
 
 Webapp đặt cơm nội bộ Rivercrane: React + Supabase (Auth/PostgreSQL/Realtime/Storage) + Cloudflare Worker. Sáu màn hình: đặt cơm, menu OCR, tổng hợp, công nợ, nhật ký, cài đặt.
 
-**Trạng thái:** bản triển khai trên nhánh phát triển; chưa kết nối hoặc triển khai hệ thống thật. Không có dữ liệu nhân viên hay webhook thật trong repository. Bản xem trước chỉ dùng dữ liệu mẫu và không ghi dữ liệu.
+**Trạng thái:** đã triển khai staging trên nhánh `feat/webapp-v1`; PR #1 vẫn draft, chưa merge main. Bản xem trước chỉ dùng dữ liệu mẫu và không ghi dữ liệu. Xem [bàn giao Codex](docs/handoff.md), [prompt khởi đầu](docs/codex-start.md) và phần mới nhất trong [staging](docs/staging.md) để biết trạng thái hiện tại.
 
 ## Chạy trên máy
 
@@ -18,7 +18,7 @@ Không điền biến môi trường vẫn xem được giao diện mẫu. Để
 
 - Mốc 17:00 hôm trước chỉ đánh dấu thay đổi trễ; vẫn sửa/hủy cho đến khi người điều phối bấm khóa. Thời gian nghiệp vụ: `Asia/Ho_Chi_Minh`.
 - Không có nhắc lịch cho cơm thứ Hai. Công bố menu có ô chọn thông báo Chat. Nhắc thứ Ba–thứ Sáu mặc định 16:45 hôm trước.
-- Thay menu giữ nguyên đơn và giá đã đặt. OCR lưu nháp riêng tư, cần kiểm tra trước khi công bố.
+- Khi sửa menu, đổi tên/xóa món đối soát và loại món bị ảnh hưởng khỏi đơn; đổi giá cập nhật món được giữ và thông báo qua audit/outbox. Công bố có lựa chọn xóa đơn đang hoạt động trong tuần, cần xác nhận. Lịch sử được giữ; OCR lưu nháp riêng tư, cần kiểm tra trước khi công bố.
 - Mutations chạy trong giao dịch gồm audit và outbox. Nhật ký giữ trước/sau, người thực hiện và lý do. Chat thử lại có giới hạn; event ID giúp nhận diện bản trùng khi mạng mất phản hồi.
 - Quyết toán dùng số nguyên VND, phân bổ phần dư, miễn phần cơm của người thu và chia khoản bao cho người tài trợ. Đã quyết toán cần mở lại trước khi sửa đơn.
 - Mọi nhân viên active được đặt/sửa/hủy hộ, bắt buộc lý do, audit giữ người thao tác/người nhận/trước/sau.
@@ -37,7 +37,7 @@ npm run test:e2e
 npm run check:secrets
 ```
 
-Integration chạy PostgreSQL WASM (PGlite), có mô phỏng Auth/RLS; E2E hiện kiểm tra giao diện mẫu ở 390px và 1440px. Chưa thay thế kiểm tra OAuth, Realtime, Storage và Worker cron trên staging. Xem [hướng dẫn triển khai](docs/deployment.md), [nhập dữ liệu](docs/import.md) và [trạng thái kiểm chứng](docs/verification.md).
+Integration chạy PostgreSQL WASM (PGlite), có mô phỏng Auth/RLS; E2E kiểm tra giao diện và fixtures ở 320px, 390px và 1440px. Chưa thay thế kiểm tra OAuth, Realtime, Storage và Worker cron trên staging. Xem [hướng dẫn triển khai](docs/deployment.md), [nhập dữ liệu](docs/import.md) và [trạng thái kiểm chứng](docs/verification.md).
 
 ### Code quality and shared UI
 
