@@ -1,5 +1,6 @@
 import { NativeSelect } from "../components/ui/native-select";
 import Button from "../components/ui/ActionButton";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { addDays, vietnamDate, weekLabel, weekStart } from "../../shared/time";
 import { Field } from "./common";
 
@@ -33,14 +34,7 @@ export default function WeekPicker({
   ].sort();
   return (
     <div className="week-picker">
-      <div className="form-row">
-        <Button
-          className="secondary"
-          disabled={disabled}
-          onClick={() => onChange(addDays(selected, -7))}
-        >
-          Tuần trước
-        </Button>
+      <div className="week-controls [&_[data-slot=native-select-wrapper]]:w-full">
         <Field label={label}>
           <NativeSelect
             aria-label={label}
@@ -56,21 +50,32 @@ export default function WeekPicker({
           </NativeSelect>
         </Field>
         <Button
-          className="secondary"
+          className="secondary week-previous"
+          aria-label="Tuần trước"
+          title="Tuần trước"
+          disabled={disabled}
+          onClick={() => onChange(addDays(selected, -7))}
+        >
+          <ChevronLeft size={18} />
+        </Button>
+        <Button
+          className="secondary week-current"
           disabled={disabled}
           onClick={() => onChange(current)}
         >
           Tuần hiện tại
         </Button>
         <Button
-          className="secondary"
+          className="secondary week-next"
+          aria-label="Tuần kế tiếp"
+          title="Tuần kế tiếp"
           disabled={disabled}
           onClick={() => onChange(addDays(selected, 7))}
         >
-          Tuần kế tiếp
+          <ChevronRight size={18} />
         </Button>
       </div>
-      <p className="muted" aria-live="polite">
+      <p className="sr-only" aria-live="polite">
         {weekLabel(selected)}
       </p>
     </div>

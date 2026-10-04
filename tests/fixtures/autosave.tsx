@@ -10,6 +10,7 @@ import {
 } from "react-router-dom";
 import Orders from "../../src/features/Orders";
 import Settings from "../../src/features/Settings";
+import AppShell from "../../src/app/AppShell";
 import { demo } from "../../src/lib/demo";
 import type { Order } from "../../shared/contracts";
 import "../../src/app/styles.css";
@@ -20,7 +21,13 @@ function Fixture() {
     d.member.role = "employee";
     d.member.order_save_mode = params.has("manual") ? "manual" : "autosave";
     d.member.can_manage_finance = false;
-    d.days = d.days.slice(0, 2);
+    if (!params.has("shell")) d.days = d.days.slice(0, 2);
+    if (params.has("shell"))
+      d.foods.push({
+        ...d.foods[0],
+        id: "fifth-food",
+        name: "Chay: Mì ý sốt nấm",
+      });
     d.orders = [];
     d.settledWeeks = params.has("settled") ? [d.days[0].date] : [];
     if (params.has("locked")) d.days[0].locked = true;
@@ -38,52 +45,56 @@ function Fixture() {
   const [settings, setSettings] = useState(params.has("settings"));
   const ids = useRef(new Map<string, Order>()),
     failed = useRef(false);
-  return (
+  const content = (
     <>
       {params.has("router") && <OrderNavigationBoundary />}
-      <button onClick={() => requestOrderNavigation(() => setLoggedOut(true))}>
-        Đăng xuất thử
-      </button>
-      <output aria-label="Đã đăng xuất">{loggedOut ? "yes" : "no"}</output>
-      <Link to="/settings">Rời màn hình</Link>
-      <button
-        onClick={() =>
-          setData((d) => ({
-            ...d,
-            member: { ...d.member, order_save_mode: "autosave" },
-          }))
-        }
-      >
-        Phiên khác bật tự lưu
-      </button>
-      <button onClick={() => setSettings(!settings)}>Đổi màn hình</button>
-      <button
-        onClick={() =>
-          setData((d) => ({
-            ...d,
-            orders: [
-              {
-                id: "remote",
-                day_id: d.days[0].id,
-                member_id: d.member.id,
-                status: "active",
-                version: 10,
-                items: [
-                  {
-                    menuItemId: d.foods[0].id,
-                    name: d.foods[0].name,
-                    unitPrice: 35000,
-                    quantity: 4,
-                    note: "Remote",
-                  },
-                ],
-              },
-            ],
-          }))
-        }
-      >
-        Người khác sửa
-      </button>
+      <div className={params.has("shell") ? "hidden" : undefined}>
+        <button
+          onClick={() => requestOrderNavigation(() => setLoggedOut(true))}
+        >
+          Đăng xuất thử
+        </button>
+        <output aria-label="Đã đăng xuất">{loggedOut ? "yes" : "no"}</output>
+        <Link to="/settings">Rời màn hình</Link>
+        <button
+          onClick={() =>
+            setData((d) => ({
+              ...d,
+              member: { ...d.member, order_save_mode: "autosave" },
+            }))
+          }
+        >
+          Phiên khác bật tự lưu
+        </button>
+        <button onClick={() => setSettings(!settings)}>Đổi màn hình</button>
+        <button
+          onClick={() =>
+            setData((d) => ({
+              ...d,
+              orders: [
+                {
+                  id: "remote",
+                  day_id: d.days[0].id,
+                  member_id: d.member.id,
+                  status: "active",
+                  version: 10,
+                  items: [
+                    {
+                      menuItemId: d.foods[0].id,
+                      name: d.foods[0].name,
+                      unitPrice: 35000,
+                      quantity: 4,
+                      note: "Remote",
+                    },
+                  ],
+                },
+              ],
+            }))
+          }
+        >
+          Người khác sửa
+        </button>
+      </div>
       {settings ? (
         <Settings
           data={data}
@@ -162,6 +173,20 @@ function Fixture() {
       <output aria-label="Số lần ghi">{count}</output>
       <output aria-label="Yêu cầu">{request}</output>
     </>
+  );
+  return params.has("shell") ? (
+    <AppShell
+      member={data.member}
+      session
+      connected
+      preview={false}
+      onRefresh={() => {}}
+      onLogout={() => {}}
+    >
+      {content}
+    </AppShell>
+  ) : (
+    content
   );
 }
 createRoot(document.getElementById("root")!).render(

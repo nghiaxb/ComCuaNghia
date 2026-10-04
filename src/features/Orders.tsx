@@ -1,5 +1,4 @@
 import { useDecision } from "./useDecision";
-import { NativeSelect } from "../components/ui/native-select";
 import {
   Tabs,
   TabsList,
@@ -360,39 +359,6 @@ export default function Orders({
           </div>
         ))
       )}
-      <Field label="Cách lưu đơn">
-        <NativeSelect
-          value={automatic ? "autosave" : "manual"}
-          disabled={
-            busy ||
-            readOnly ||
-            saveStatus === "saving" ||
-            saveStatus === "uncertain"
-          }
-          onChange={(e) => {
-            const mode = e.target.value;
-            void (async () => {
-              const saveMode = () => {
-                if (mode === "autosave") draft.allowAutomatic();
-                return mutate(
-                  "profile.save",
-                  {
-                    displayName: data.member.display_name,
-                    orderSaveMode: mode,
-                  },
-                  data.member.version,
-                );
-              };
-              if (mode === "autosave" && draft.state.dirty)
-                await confirm("Bật tự lưu và gửi bản nháp hiện tại?", saveMode);
-              else await saveMode();
-            })();
-          }}
-        >
-          <option value="autosave">Tự lưu</option>
-          <option value="manual">Bấm gửi</option>
-        </NativeSelect>
-      </Field>
       <p
         role="status"
         aria-label="Trạng thái lưu đơn"
@@ -456,22 +422,33 @@ export default function Orders({
     <div className="orders-page">
       {dialog}
       <div className="page-title">
-        <div>
-          <p className="eyebrow">MỖI NGÀY, MỘT BỮA NGON</p>
-          <h1>Đặt cơm</h1>
-          <p>Chọn món, kiểm tra đơn và đặt hộ đồng nghiệp.</p>
-        </div>
+        <h1>Đặt cơm</h1>
         <span className="tag">
           <Clock3 size={15} /> Mốc dự kiến {data.settings.data.cutoffTime} hôm
           trước
         </span>
       </div>
-      <WeekPicker
-        value={week}
-        onChange={(value) => draft.guard(() => setWeek(value))}
-        availableWeeks={data.days.map((d) => weekStart(d.date))}
-        label="Tuần đặt cơm"
-      />
+      <div className="order-toolbar">
+        <WeekPicker
+          value={week}
+          onChange={(value) => draft.guard(() => setWeek(value))}
+          availableWeeks={data.days.map((d) => weekStart(d.date))}
+          label="Tuần đặt cơm"
+        />
+        <div className="order-recipient [&_p]:mb-1 [&_p]:text-xs">
+          <RecipientPicker
+            value={memberId}
+            recipients={recipients}
+            disabled={busy || readOnly}
+            onChange={(value) =>
+              draft.guard(() => {
+                setMemberId(value);
+                setReason("");
+              })
+            }
+          />
+        </div>
+      </div>
       <div className="days">
         {days.map((d) => (
           <Button
@@ -505,36 +482,23 @@ export default function Orders({
           </Field>
         )}
       </div>
-      <section className="recipient-toolbar mb-5 grid gap-4 rounded-xl border bg-background p-4 md:grid-cols-2">
-        <RecipientPicker
-          value={memberId}
-          recipients={recipients}
-          disabled={busy || readOnly}
-          onChange={(value) =>
-            draft.guard(() => {
-              setMemberId(value);
-              setReason("");
-            })
-          }
-        />
-        {proxy && (
-          <>
-            <Field label="Lý do đặt hoặc chỉnh hộ">
-              <Input
-                value={reason}
-                maxLength={500}
-                disabled={blocked}
-                placeholder="Đồng nghiệp nhờ đặt…"
-                onChange={(e) => setReason(e.target.value)}
-              />
-            </Field>
-            <p className="fine">
-              Ghi nhận bạn là người thao tác, {recipient?.display_name} là người
-              nhận cơm. Đơn hiện có sẽ được tải để bạn chỉnh.
-            </p>
-          </>
-        )}
-      </section>
+      {proxy && (
+        <section className="recipient-toolbar">
+          <Field label="Lý do đặt hoặc chỉnh hộ">
+            <Input
+              value={reason}
+              maxLength={500}
+              disabled={blocked}
+              placeholder="Đồng nghiệp nhờ đặt…"
+              onChange={(e) => setReason(e.target.value)}
+            />
+          </Field>
+          <p className="fine">
+            Ghi nhận bạn là người thao tác, {recipient?.display_name} là người
+            nhận cơm. Đơn hiện có sẽ được tải để bạn chỉnh.
+          </p>
+        </section>
+      )}
       <div className="order-grid">
         <section>
           <div className="section-title">

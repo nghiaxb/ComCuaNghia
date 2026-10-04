@@ -109,7 +109,7 @@ export default function AppShell({
       </aside>
       <div className="md:pl-60">
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-2 border-b bg-background/95 px-4 backdrop-blur md:px-8">
-          <div className="flex min-w-0 items-center gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
                 <Button
@@ -131,12 +131,12 @@ export default function AppShell({
                 <div className="mt-auto">{profile}</div>
               </SheetContent>
             </Sheet>
-            <span className="truncate text-sm font-medium">
+            <span className="min-w-0 truncate text-sm font-medium">
               Không gian đặt cơm{" "}
               <span className="text-muted-foreground">· Rivercrane</span>
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <Badge
               variant="outline"
               className="max-w-36 whitespace-normal text-center text-xs"

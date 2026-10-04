@@ -140,10 +140,10 @@ test("queued autosave cancellation removes pending edits; enabling autosave conf
   await expect(page.getByLabel("Số lần ghi")).toHaveText("2");
   await page.goto("/tests/fixtures/autosave.html?manual");
   await add(page);
-  await page.getByLabel("Cách lưu đơn").selectOption("autosave");
+  await page.getByRole("button", { name: "Phiên khác bật tự lưu" }).click();
   await page
-    .getByRole("alertdialog")
-    .getByRole("button", { name: "Xác nhận", exact: true })
+    .getByRole("dialog", { name: "Bật tự lưu cho bản nháp?" })
+    .getByRole("button", { name: "Bật tự lưu và gửi", exact: true })
     .click();
   await page.clock.runFor(700);
   await expect(page.getByLabel("Số lần ghi")).toHaveText("1");

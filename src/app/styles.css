@@ -244,16 +244,59 @@
     @apply border-b-0;
   }
   .week-picker {
-    @apply mb-4;
+    @apply mb-4 w-full min-w-0 sm:w-fit;
   }
-  .week-picker .form-row {
-    @apply my-0;
+  .week-controls {
+    @apply grid grid-cols-[44px_minmax(0,1fr)_44px] items-end gap-2 sm:flex sm:flex-wrap;
   }
   .week-picker .field {
+    @apply col-span-3 m-0 sm:w-60 sm:flex-none sm:basis-auto;
+  }
+  .week-picker .field > span {
+    @apply text-xs;
+  }
+  .week-previous,
+  .week-next {
+    @apply min-w-11 px-2;
+  }
+  .week-current {
+    @apply w-full sm:w-auto;
+  }
+  .orders-page .page-title {
+    @apply mb-4;
+  }
+  .order-toolbar {
+    @apply mb-3 flex min-w-0 flex-wrap items-end gap-3;
+  }
+  .order-toolbar .week-picker {
+    @apply mb-0;
+  }
+  .order-recipient {
+    @apply w-full min-w-0 sm:w-60;
+  }
+  .recipient-toolbar {
+    @apply mb-3 rounded-lg border bg-background px-3 py-2;
+  }
+  .recipient-toolbar .field {
     @apply my-0;
   }
-  .week-picker > .muted {
-    @apply mt-2;
+  .recipient-toolbar .fine {
+    @apply mt-1;
+  }
+  .orders-page .days {
+    @apply mb-3 grid grid-cols-5 gap-1 sm:flex sm:gap-2;
+  }
+  .orders-page .days > .field {
+    @apply col-span-5;
+  }
+  .orders-page .days button {
+    @apply min-w-0 px-1 sm:min-w-14 sm:px-3;
+  }
+  .orders-page .days strong {
+    @apply text-xs sm:text-sm;
+  }
+  .orders-page .meal-row {
+    @apply py-2;
   }
   .days {
     @apply mb-5 flex max-w-full flex-wrap gap-2;
@@ -319,16 +362,19 @@
     @apply my-4 rounded-lg bg-muted p-5 text-center text-sm text-muted-foreground;
   }
   .cart-item {
-    @apply my-3 flex flex-wrap items-center gap-2 border-b pb-4;
+    @apply my-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1 border-b pb-2;
   }
   .cart-item > strong {
-    @apply min-w-0 flex-1 basis-1/2 break-words text-sm;
+    @apply col-start-1 min-w-0 break-words text-sm;
   }
   .cart-item > small {
-    @apply w-full text-xs text-muted-foreground;
+    @apply col-start-1 row-start-2 min-w-0 break-words text-xs text-muted-foreground;
+  }
+  .cart-item > .quantity {
+    @apply col-start-2 row-span-2 row-start-1;
   }
   .cart-item > input {
-    @apply mt-2 w-full;
+    @apply col-span-2 m-0 w-full;
   }
   .cart-total {
     @apply my-4 flex justify-between border-t pt-4 font-medium tabular-nums;

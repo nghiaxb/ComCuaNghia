@@ -87,6 +87,9 @@ export default function Settings({ data, mutate, busy, readOnly }: PageProps) {
                 <option value="manual">Bấm gửi để lưu</option>
               </NativeSelect>
             </Field>
+            <p className="fine mb-3">
+              Cách lưu áp dụng cho mọi đơn bạn thao tác, kể cả đặt hộ.
+            </p>
             <Button
               className="secondary"
               disabled={busy || readOnly}
