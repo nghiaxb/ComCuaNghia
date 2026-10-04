@@ -462,3 +462,28 @@ text/javascript (833.982 bytes), CSS `index-BiOGvs3X.css` 200 text/css
 snapshot chưa đăng nhập 401. Preview staging 1440px có `--primary` `#2f5061`,
 không tràn ngang/page error. Không ghi dữ liệu thật, gọi OCR thật, gửi Chat
 hoặc deploy production.
+
+## Logo cái bát và favicon — 2026-10-04
+
+Người dùng cung cấp ảnh logo (biểu tượng bát chữ N + chữ "Cơm Của Nghĩa") vẽ
+bằng ChatGPT. Commit `cd66699` cắt riêng biểu tượng (146×140 px trong ảnh gốc
+1024×341) đặt trong ô vuông bo góc nền kem của ảnh, để bát Mist Blue vẫn nổi
+trên sidebar xanh/tối; không dùng phần chữ vì chữ Mist Blue chìm trên sidebar và
+tên đã là text HTML. Thay icon dao nĩa ở sidebar và màn đăng nhập bằng
+`public/brand/logo-mark.png` (128px, `alt=""` vì cạnh tên), thêm
+`public/favicon.ico` (16/32/48), `brand/favicon-32.png`,
+`brand/apple-touch-icon.png` (180px) và link trong `index.html`. Cắt bằng canvas
+Chromium của Playwright có sẵn; không thêm dependency.
+
+Kiểm tra liên quan: lint, typecheck, build (bốn ảnh có trong `dist`) và 20
+Playwright (shell, redesign, theme) đạt; ảnh local sidebar sáng/tối và màn đăng
+nhập. Ảnh nguồn nhỏ; nên thay bằng bản lớn/SVG nếu có.
+
+Deploy staging `--keep-vars` version `22470335-b008-4d34-8217-8e3c965497d9`;
+giữ tám bindings gồm `OCR_WORKER_URL`, ba secrets, handlers fetch/scheduled và
+`global_fetch_strictly_public`. HTTP `/order` 200 text/html (1.373 bytes), JS
+`index-BIlA9bSc.js` 200 text/javascript (833.631 bytes), CSS
+`index-CGDb081P.css` 200 text/css (81.503 bytes), `favicon.ico` 200
+image/vnd.microsoft.icon, ba PNG brand 200 image/png; tất cả khớp byte build
+local. Health 200/ok=true/configured=true, snapshot chưa đăng nhập 401. PR #1
+vẫn open/draft; không ghi dữ liệu thật, gọi OCR/Chat hoặc deploy production.
