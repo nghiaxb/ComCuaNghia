@@ -38,7 +38,7 @@ test("theme defaults to system, remembers override and follows system again", as
   ).toHaveAttribute("aria-pressed", "true");
   await menu.getByRole("button", { name: "Sáng", exact: true }).click();
   await expect(page.locator("html")).not.toHaveClass(/dark/);
-  await expect(page.locator("body")).toHaveCSS("color", "rgb(32, 53, 43)");
+  await expect(page.locator("body")).toHaveCSS("color", "rgb(31, 52, 64)");
   await page.reload();
   await expect(page.locator("html")).not.toHaveClass(/dark/);
   await page.emulateMedia({ colorScheme: "light" });

@@ -21,7 +21,7 @@ function apply() {
   document.documentElement.style.colorScheme = mode;
   document
     .querySelector('meta[name="theme-color"]')
-    ?.setAttribute("content", mode === "dark" ? "#101b16" : "#f7f6f0");
+    ?.setAttribute("content", mode === "dark" ? "#13212a" : "#f6f3f2");
   for (const listener of listeners) listener();
 }
 export function setThemePreference(value: ThemePreference) {
