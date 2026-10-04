@@ -138,6 +138,11 @@
   select {
     @apply max-w-full;
   }
+  select option,
+  select optgroup {
+    background: var(--background);
+    color: var(--foreground);
+  }
   pre {
     @apply overflow-auto whitespace-pre-wrap break-words rounded-lg bg-muted p-3 text-xs;
   }
