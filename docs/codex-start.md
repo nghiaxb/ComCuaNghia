@@ -15,7 +15,7 @@ Chạy baseline lint/format/typecheck/secret scan, unit/integration/Python/Playw
 Báo kết quả thực chạy và lỗi setup nếu có; không coi test fixture là live Supabase Realtime.
 
 Giữ quy tắc đã chốt: sau17h hôm trước vẫn được sửa đến khi khóa/quyết toán;
-mọi nhân viên được đặt hộ có lý do/audit; OCR preview rồi bấm submit mới gửi;
+mọi nhân viên được đặt hộ, lý do tùy chọn nhưng luôn audit người thao tác/người nhận/trước/sau; OCR preview rồi bấm submit mới gửi;
 shared orders và bill realtime; không làm mất nháp, requestId/version/retry/consent.
 UI dùng shadcn source + Tailwind; chưa có nhu cầu thêm Redux/TanStack Query/UI framework.
 

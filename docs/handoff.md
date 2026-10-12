@@ -23,6 +23,11 @@ The conversation in ChatGPT Work is not a prerequisite. This document plus AGENT
 
 Six routes: `/order`, `/menus`, `/summary`, `/finance`, `/audit`, `/settings`. Verified company Google login, proxy ordering for all employees with actor/reason, local OCR preview/drop/paste with explicit submit, week selection/history/menu reconciliation, audited Chat outbox, public daily bill allocations, settlement/payments, personal autosave/manual settings, and realtime refresh batching are implemented.
 
+Updated business rule, approved 2026-10-12: reasons for placing/editing/cancelling
+proxy orders are optional. Actor, recipient and before/after audit remain mandatory.
+Reason requirements for day locking, menu withdrawal and finance/import reversals
+remain unchanged; older specs describing mandatory proxy reasons are historical.
+
 All screens/shell use Tailwind v4 and shadcn source (Radix). The CLI failed behind the previous proxy, so official registry files were integrated manually. `components.json`, aliases and pinned dependencies are present. `ActionButton`/`Modal` wrappers avoid filename-case collisions with generated `button`/`dialog`. One local cart content/controller renders desktop or mobile Sheet. No Redux/TanStack Query migration was requested or implemented.
 
 Final review fixes bind confirmations to subjects, keep destructive dialogs busy/retryable, wrap long mobile shared rows, restore cart focus and preserve bill drafts with original versions across remote updates.

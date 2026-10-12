@@ -1,5 +1,8 @@
 import { test, expect } from "@playwright/test";
 test.setTimeout(10000);
+test.beforeEach(async ({ page }) => {
+  await page.clock.install({ time: new Date("2026-10-05T03:00:00Z") });
+});
 test("mobile navigation opens accessible menu and restores focus", async ({
   page,
 }) => {
@@ -20,7 +23,10 @@ test("recipient picker searches and selects an explicit colleague", async ({
 }) => {
   await page.goto("/tests/fixtures/autosave.html");
   await page.getByRole("combobox", { name: "Đặt cơm cho" }).click();
-  await page.getByPlaceholder("Tìm đồng nghiệp…").fill("Lan");
+  await page
+    .getByRole("dialog")
+    .getByPlaceholder("Tìm đồng nghiệp…")
+    .fill("Lan");
   await page.getByRole("option", { name: "Lan", exact: true }).click();
   await expect(page.getByLabel("Lý do đặt hoặc chỉnh hộ")).toBeVisible();
 });
@@ -39,7 +45,6 @@ test("mobile cart opens as a sheet and save status stays visible", async ({
 test("mobile uncertain request exposes Retry without opening cart", async ({
   page,
 }) => {
-  await page.clock.install({ time: new Date("2026-10-05T03:00:00Z") });
   await page.setViewportSize({ width: 320, height: 800 });
   await page.goto("/tests/fixtures/autosave.html?error");
   await page
@@ -168,7 +173,6 @@ test("settings tabs wrap within their bar above the active panel", async ({
 test("day selection exposes one current day and distinct unselected controls", async ({
   page,
 }) => {
-  await page.clock.install({ time: new Date("2026-10-05T03:00:00Z") });
   await page.goto("/tests/fixtures/autosave.html");
   const days = page.locator(".days");
   await expect(days.getByRole("button", { pressed: true })).toHaveCount(1);

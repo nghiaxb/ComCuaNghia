@@ -72,7 +72,7 @@ it("publishes without destroying orders, enforces ownership and lock, idempotenc
   expect(order.items[0].unitPrice).toBe(35000);
   expect((await command("order.save", payload, 0, request)).id).toBe(order.id);
   await expect(
-    command("order.save", { ...payload, memberId: admin }),
+    command("order.save", { ...payload, memberId: crypto.randomUUID() }),
   ).rejects.toThrow(/VALIDATION/);
   await expect(command("order.save", payload, 0)).rejects.toThrow(/CONFLICT/);
   await actor(admin);
@@ -549,7 +549,109 @@ it("defers membership until Google signup confirms email in its follow-up update
     ).rows,
   ).toHaveLength(1);
 });
-it("lets employees place, change and cancel proxy orders with reasons until manual lock", async () => {
+it("saves, edits and cancels proxy orders without a reason while preserving audit and retries", async () => {
+  await actor(admin);
+  await command("menu.publish", {
+    days: [
+      {
+        date: "2028-01-10",
+        foods: [{ name: "Optional reason rice", unitPrice: 35000 }],
+      },
+    ],
+    notifyChat: false,
+  });
+  const day = (
+    await db.query<any>("select * from public.days where date='2028-01-10'")
+  ).rows[0];
+  const food = (
+    await db.query<any>("select * from public.foods where day_id=$1", [day.id])
+  ).rows[0];
+  await actor(employee);
+  await db.exec("set role authenticated");
+  try {
+    let order: any;
+    for (const [index, reason] of [undefined, "", "   "].entries()) {
+      const payload = {
+        dayId: day.id,
+        memberId: admin,
+        items: [{ menuItemId: food.id, quantity: index + 1 }],
+        ...(reason === undefined ? {} : { reason }),
+      };
+      const version = order?.version ?? 0;
+      const requestId = crypto.randomUUID();
+      const saved = await command("order.save", payload, version, requestId);
+      expect(await command("order.save", payload, version, requestId)).toEqual(
+        saved,
+      );
+      const logs = (
+        await db.query<any>(
+          "select * from public.audit_events where request_id=$1",
+          [requestId],
+        )
+      ).rows;
+      expect(logs).toHaveLength(1);
+      expect(logs[0]).toMatchObject({
+        actor_id: employee,
+        subject_id: admin,
+        entity_id: saved.id,
+        kind: "order.save",
+      });
+      if (order) expect(logs[0].before).toEqual(order);
+      else
+        expect(logs[0].before).toMatchObject({
+          id: null,
+          member_id: null,
+          items: null,
+        });
+      expect(logs[0].after.items[0].quantity).toBe(index + 1);
+      order = saved;
+    }
+    for (const reason of [42, {}, ["bad"], "x".repeat(501)]) {
+      await expect(
+        command(
+          "order.save",
+          {
+            dayId: day.id,
+            memberId: admin,
+            items: [{ menuItemId: food.id, quantity: 4 }],
+            reason,
+          },
+          order.version,
+        ),
+      ).rejects.toThrow(/VALIDATION/);
+    }
+    const requestId = crypto.randomUUID();
+    const payload = { orderId: order.id };
+    const cancelled = await command(
+      "order.cancel",
+      payload,
+      order.version,
+      requestId,
+    );
+    expect(cancelled.status).toBe("cancelled");
+    expect(
+      await command("order.cancel", payload, order.version, requestId),
+    ).toEqual(cancelled);
+    const logs = (
+      await db.query<any>(
+        "select * from public.audit_events where request_id=$1",
+        [requestId],
+      )
+    ).rows;
+    expect(logs).toHaveLength(1);
+    expect(logs[0]).toMatchObject({
+      actor_id: employee,
+      subject_id: admin,
+      kind: "order.cancel",
+      before: order,
+      after: cancelled,
+    });
+  } finally {
+    await db.exec("reset role");
+  }
+});
+
+it("lets employees place, change and cancel proxy orders with optional reasons until manual lock", async () => {
   await actor(admin);
   await command("menu.publish", {
     days: [
@@ -581,7 +683,7 @@ it("lets employees place, change and cancel proxy orders with reasons until manu
       items: [{ menuItemId: food.id, quantity: 2, note: "No chili" }],
     };
     await expect(
-      command("order.save", { ...payload, reason: "   " }),
+      command("order.save", { ...payload, reason: "x".repeat(501) }),
     ).rejects.toThrow(/VALIDATION/);
     const saved = await command("order.save", payload);
     const changed = await command(

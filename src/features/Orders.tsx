@@ -145,7 +145,7 @@ export default function Orders({
     memberId,
     order,
     automatic: preferredAutomatic,
-    enabled: !!day && !blocked && (!proxy || !!reason.trim()),
+    enabled: !!day && !blocked,
     reason: proxy ? reason.trim() : "",
     submit: async (r) => {
       if (commitOrder) return commitOrder(r);
@@ -192,11 +192,9 @@ export default function Orders({
           : saveStatus === "saved"
             ? "Đã lưu"
             : draft.state.dirty
-              ? proxy && !reason.trim()
-                ? "Nhập lý do để lưu đơn đặt hộ"
-                : automatic
-                  ? "Chờ tự lưu…"
-                  : "Có thay đổi chưa gửi"
+              ? automatic
+                ? "Chờ tự lưu…"
+                : "Có thay đổi chưa gửi"
               : automatic
                 ? "Tự lưu đang bật"
                 : "Bấm gửi để lưu đơn");
@@ -237,7 +235,6 @@ export default function Orders({
   const saveBlocked =
     !day ||
     blocked ||
-    (proxy && !reason.trim()) ||
     ["saving", "uncertain", "conflict", "locked", "error"].includes(
       saveStatus,
     ) ||
@@ -402,9 +399,7 @@ export default function Orders({
         <Button
           className="text-button wide"
           disabled={
-            blocked ||
-            (proxy && !reason.trim()) ||
-            ["saving", "uncertain", "conflict"].includes(saveStatus)
+            blocked || ["saving", "uncertain", "conflict"].includes(saveStatus)
           }
           onClick={() => {
             void confirm("Hủy đơn cơm ngày này?", () => draft.cancel());
@@ -451,7 +446,7 @@ export default function Orders({
       </div>
       {proxy && (
         <section className="recipient-toolbar">
-          <Field label="Lý do đặt hoặc chỉnh hộ">
+          <Field label="Lý do đặt hoặc chỉnh hộ (không bắt buộc)">
             <Input
               value={reason}
               maxLength={500}

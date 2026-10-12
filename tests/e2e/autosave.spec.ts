@@ -34,18 +34,22 @@ test("default autosave debounces quantity and note; manual waits for submit", as
     .click();
   await expect(page.getByLabel("Số lần ghi")).toHaveText("1");
 });
-test("proxy requires reason and uses actor mode; protected screens never submit", async ({
+test("proxy autosaves without a reason, keeps an optional reason and respects protected screens", async ({
   page,
 }) => {
   await page.goto("/tests/fixtures/autosave.html");
   await chooseRecipient(page, "friend");
   await add(page);
   await page.clock.runFor(1000);
-  await expect(page.getByLabel("Số lần ghi")).toHaveText("0");
-  await page.getByLabel("Lý do đặt hoặc chỉnh hộ").fill("Lan nhờ");
-  await page.clock.runFor(700);
   await expect(page.getByLabel("Số lần ghi")).toHaveText("1");
   await expect(page.getByLabel("Yêu cầu")).toContainText("friend");
+  await expect(page.getByLabel("Yêu cầu")).not.toContainText('"reason"');
+  await page.getByLabel("Lý do đặt hoặc chỉnh hộ").fill("Lan nhờ");
+  await add(page);
+  await page.clock.runFor(700);
+  await expect(page.getByLabel("Số lần ghi")).toHaveText("2");
+  await expect(page.getByLabel("Yêu cầu")).toContainText("friend");
+  await expect(page.getByLabel("Yêu cầu")).toContainText("Lan nhờ");
   for (const mode of ["preview", "locked", "settled"]) {
     await page.goto("/tests/fixtures/autosave.html?" + mode);
     await expect(
@@ -55,6 +59,38 @@ test("proxy requires reason and uses actor mode; protected screens never submit"
     await expect(page.getByLabel("Số lần ghi")).toHaveText("0");
   }
 });
+test("manual proxy draft saves from its navigation guard without a reason", async ({
+  page,
+}) => {
+  for (const width of [320, 390, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/tests/fixtures/autosave.html?manual");
+    await chooseRecipient(page, "friend");
+    await add(page);
+    await page.clock.runFor(1000);
+    await expect(page.getByLabel("Số lần ghi")).toHaveText("0");
+    await page.getByRole("link", { name: "Rời màn hình" }).click();
+    const dialog = page.getByRole("dialog", { name: "Bản nháp chưa lưu" });
+    await expect(dialog).toBeVisible();
+    const save = dialog.getByRole("button", { name: "Lưu rồi kiểm tra" });
+    await expect(save).toBeEnabled();
+    await save.click();
+    await expect(page.getByLabel("Số lần ghi")).toHaveText("1");
+    await expect(page.getByLabel("Yêu cầu")).toContainText("friend");
+    await expect(page.getByLabel("Yêu cầu")).not.toContainText('"reason"');
+    await page.getByRole("button", { name: "Tiếp tục chỉnh" }).click();
+    if (width < 768)
+      await page.getByRole("button", { name: /Xem đơn/ }).click();
+    await page.getByRole("button", { name: "Hủy đơn", exact: true }).click();
+    await page
+      .getByRole("alertdialog")
+      .getByRole("button", { name: "Xác nhận", exact: true })
+      .click();
+    await expect(page.getByLabel("Số lần ghi")).toHaveText("2");
+    await expect(page.getByLabel("Yêu cầu")).toContainText("order.cancel");
+  }
+});
+
 test("navigation guards dirty cart, external update preserves draft, retry preserves request identity", async ({
   page,
 }) => {

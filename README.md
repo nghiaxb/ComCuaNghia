@@ -21,7 +21,7 @@ Không điền biến môi trường vẫn xem được giao diện mẫu. Để
 - Khi sửa menu, đổi tên/xóa món đối soát và loại món bị ảnh hưởng khỏi đơn; đổi giá cập nhật món được giữ và thông báo qua audit/outbox. Công bố có lựa chọn xóa đơn đang hoạt động trong tuần, cần xác nhận. Lịch sử được giữ; OCR lưu nháp riêng tư, cần kiểm tra trước khi công bố.
 - Mutations chạy trong giao dịch gồm audit và outbox. Nhật ký giữ trước/sau, người thực hiện và lý do. Chat thử lại có giới hạn; event ID giúp nhận diện bản trùng khi mạng mất phản hồi.
 - Quyết toán dùng số nguyên VND, phân bổ phần dư, miễn phần cơm của người thu và chia khoản bao cho người tài trợ. Đã quyết toán cần mở lại trước khi sửa đơn.
-- Mọi nhân viên active được đặt/sửa/hủy hộ, bắt buộc lý do, audit giữ người thao tác/người nhận/trước/sau.
+- Mọi nhân viên active được đặt/sửa/hủy hộ; lý do không bắt buộc, audit luôn giữ người thao tác/người nhận/trước/sau.
 - OCR nhận kéo thả và Ctrl+V/⌘V để chọn và xem trước ảnh; chỉ gửi khi bấm “Đọc menu bằng OCR”. Có nút bỏ ảnh, giữ ảnh khi lỗi. Nhập thứ Hai–thứ Sáu, bỏ qua cuối tuần; lỗi OCR phân biệt dịch vụ, phân tích và lưu nháp.
 - Đăng nhập Google đã xác minh thuộc `rivercrane.vn`; RLS kiểm tra trạng thái thành viên mỗi request. Client không có quyền ghi trực tiếp bảng.
 

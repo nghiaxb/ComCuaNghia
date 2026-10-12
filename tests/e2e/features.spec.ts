@@ -77,7 +77,7 @@ test("employee edits an existing proxy cart with recipient reason and optimistic
   await expect(page.getByLabel("Ghi chú món")).toHaveValue("Ít cơm");
   await expect(
     page.getByRole("button", { name: "Lưu thay đổi" }),
-  ).toBeDisabled();
+  ).toBeEnabled();
   await page.getByLabel("Lý do đặt hoặc chỉnh hộ").fill("Đồng nghiệp nhờ");
   await page.getByRole("button", { name: "Tăng", exact: true }).click();
   await page.getByRole("button", { name: "Lưu thay đổi" }).click();
