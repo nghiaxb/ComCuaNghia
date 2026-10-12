@@ -487,3 +487,68 @@ giữ tám bindings gồm `OCR_WORKER_URL`, ba secrets, handlers fetch/scheduled
 image/vnd.microsoft.icon, ba PNG brand 200 image/png; tất cả khớp byte build
 local. Health 200/ok=true/configured=true, snapshot chưa đăng nhập 401. PR #1
 vẫn open/draft; không ghi dữ liệu thật, gọi OCR/Chat hoặc deploy production.
+
+## Lý do đặt/chỉnh/hủy hộ không bắt buộc — 2026-10-12
+
+Người dùng đổi quy tắc: đã lưu người thao tác làm bằng chứng nên không muốn
+lý do đặt hộ bắt buộc. Commit ứng dụng `ede719086fe29d10025d706c81bbd2480f796e8c`
+đã push `feat/webapp-v1`. Orders bỏ reason gate ở autosave, lưu tay, lưu qua
+dirty guard và hủy; ô lý do giữ lại với nhãn `không bắt buộc`, gửi nội dung khi
+có nhập. Không thay controller, requestId/retry, expected version, consent,
+guard điều hướng hoặc điều kiện khóa/quyết toán/quyền. AGENTS, README,
+handoff và prompt khởi đầu cập nhật quy tắc mới; spec cũ là lịch sử.
+
+Migration `20261012171215_optional_proxy_reason.sql` chỉ thay một guard trong
+`private.run`, cho phép lý do thiếu/rỗng/whitespace ở order.save/order.cancel,
+vẫn giới hạn 500 ký tự và từ chối reason sai kiểu. Các thao tác khác giữ yêu cầu
+lý do hiện tại. Migration kiểm tra đúng một đoạn nguồn rồi mới thay, giữ nguyên
+hàm còn lại, owner/ACL/SECURITY DEFINER/search_path. Audit luôn có actor,
+subject, before/after; không tự tạo lý do giả.
+
+Regression database và hai browser regression đã RED trước sửa rồi GREEN:
+đặt/sửa/hủy không có lý do, audit đầy đủ, idempotent retry, lưu navigation ở
+320/390/1440px, lý do có nhập vẫn gửi và màn khóa/preview/quyết toán không ghi.
+Test cũ kỳ vọng mandatory reason được cập nhật theo quy tắc mới. Full browser
+lần đầu còn sáu failure: một kỳ vọng mandatory cũ, picker trùng placeholder với
+roster, bốn fixture shared cố định 05/10 nhưng thiếu clock. Đã scope tìm kiếm
+trong popup và cố định clock của nhóm redesign, giữ nguyên assertions về bill,
+share, nháp/version; full suite chạy lại đạt.
+
+Baseline thực chạy: Node24/npm ci/Chromium, lint, format, typecheck, secret scan,
+52 unit, 35 integration, 3 Python, 73 Playwright, configured build và staging
+Worker dry-run đều đạt. Review độc lập kiểm tra definition trước/sau trong
+PGlite xác nhận chỉ thay guard, không đổi owner/ACL/security/search_path.
+CLI Supabase qua npx lỗi spawn UNKNOWN; native executable `supabase.exe`
+tạo migration thành công. File được đồng bộ timestamp theo migration history
+MCP sau khi áp dụng, nội dung không đổi.
+
+Supabase staging `veptcxaahkghwwfwjzvn` áp dụng migration qua connector,
+history version `20261012171215`. SQL read-only sau migration xác nhận reason
+required đã bỏ, audit còn nguyên, ACL `{postgres,authenticated}` và
+SECURITY DEFINER/search_path giữ nguyên. Thay guard ngược lại trên definition
+hiện tại cho MD5 đúng bản trước `9ae6fd0bcf0f84140e1f7155241de095`, chứng minh
+không đổi phần còn lại. Không tạo/sửa/hủy đơn thật để thử.
+
+Deploy Worker staging bằng CLI với `--keep-vars`, version
+`2c63804f-cba9-44c1-a91b-ad8f56318e2a`, deployment
+`df38a728-c3e9-418a-bb4b-6956adc49f38`, 100% tại
+`2026-10-12T17:12:55.2317Z`. Sau deploy xác nhận đủ tám bindings (kể cả
+OCR_WORKER_URL trên dashboard và ba secrets), observability và
+global_fetch_strictly_public; SPA fallback và /api/\* Worker-first theo config.
+PR #1 vẫn open/draft, không merge main.
+
+HTTP `/order` 200 HTML (1.373 bytes), JS `index-pDPfGnuf.js` 200
+text/javascript (833.549 bytes), CSS `index-CGDb081P.css` 200 text/css
+(81.503 bytes), khớp byte local; health 200/ok=true/configured=true và snapshot
+chưa đăng nhập 401. Preview staging với người nhận mẫu tại 320/390/1440px
+hiển thị lý do không bắt buộc, không tràn ngang/page error. Ảnh/bằng chứng ở
+ignored `.superpowers/deploy-proxy-reason-20261012/`. Preview và PGlite không
+chứng minh live Realtime; chưa gửi OCR/Chat thật hoặc deploy production.
+
+Các cảnh báo nền: npm audit hiện báo 5 high ở Playwright, miniflare, sharp,
+wrangler (lockfile không đổi); build JS gzip 249,77KB vẫn có cảnh báo chunk.
+Supabase security advisors trước/sau có hai WARN không đổi:
+[delivery_status SECURITY DEFINER](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable)
+và [leaked password protection](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection).
+Đợt này không đổi auth, RPC delivery_status hoặc dependencies để xử lý riêng
+các cảnh báo đó.
