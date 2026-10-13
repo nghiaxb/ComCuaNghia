@@ -552,3 +552,61 @@ Supabase security advisors trước/sau có hai WARN không đổi:
 và [leaked password protection](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection).
 Đợt này không đổi auth, RPC delivery_status hoặc dependencies để xử lý riêng
 các cảnh báo đó.
+
+## Khôi phục phiên và điều phối ngay màn Đặt cơm — 2026-10-14
+
+Commit ứng dụng `91d96a2ec45da218adf9a20833ede92f1d4a690a` đã push nhánh
+`feat/webapp-v1`. Theo yêu cầu người dùng: F5 chờ khôi phục phiên/tải snapshot
+trước khi hiện login; lỗi khôi phục có nút thử lại. Đơn tự lưu dùng badge “Đã
+lưu” thay nút disabled. Màn Đặt cơm hiển thị đồng thời roster, đơn gửi quán,
+bill/giảm giá/phí và khóa ngày, cùng ngày đang chọn; Tổng hợp đơn tái sử dụng
+component này. Desktop bảng đơn cạnh bill, mobile xếp dọc và chừa khoảng đáy
+cho thanh giỏ. Bao cơm/người trả thay nằm trong mục mở rộng. Quyết toán cả tuần
+tiếp tục ở Công nợ. Không đổi SQL, Worker, dependencies, palette hay logo.
+
+Quyền admin/coordinator/finance/employee, read-only và quyết toán vẫn được giữ.
+Khóa ngày đi qua guard nháp đơn trước hộp thoại lý do; focus trở về control
+khởi tạo. Bill draft giữ giá trị/expectedVersion khi đổi ngày, sang tuần trống
+hoặc nhận snapshot remote. ACK của chính lần lưu cập nhật đúng ngày, kể cả
+editor unmount hoặc đã quay lại ngày đó trước ACK. Không dùng snapshot remote
+để tự tăng expectedVersion. Controller order, requestId/retry và consent giữ
+nguyên.
+
+Thêm chín regression browser. Sáu yêu cầu đầu đã RED trước triển khai; kiểm tra
+guard nối hai hộp thoại tái hiện lỗi focus rồi GREEN. Review độc lập tái hiện
+hai lỗi P2 (auth lỗi bị coi signed-out, ACK bill mất khi đổi ngày), đã sửa và
+thêm regression cho retry/cả hai thứ tự ACK. Review cuối không còn finding.
+Full browser lần đầu 79/80: một locator lịch sử trùng món trong cart và bảng
+đơn mới; đã scope vào cart, giữ nguyên assertions về món cũ/tổng tiền. Test
+shared bỏ thao tác chuyển tab vì bill và roster cùng hiện; các assertions về
+autosave, share, cancel, menu reconciliation, lock và refresh batching giữ nguyên.
+Clock fixture retry chia riêng thời gian auth/snapshot để chờ React render giữa
+hai timer.
+
+Baseline thực chạy Node24/npm ci/Chromium; lint, format, typecheck, secret scan,
+52 unit, 35 integration, 3 Python, 82 Playwright, configured Vite build và
+Wrangler staging dry-run đều đạt. Local shell hai màn hình và fixture có đơn
+kiểm tra sáng/tối × 320/390/1440px: không tràn ngang/page error; nút khóa tối
+thiểu 44px; nút lưu bill mobile bấm được, không bị thanh giỏ che. Các fixture
+không chứng minh OAuth/Realtime thật.
+
+Deploy staging bằng Wrangler CLI `--minify --keep-vars`: version
+`cc6fb815-c652-42fd-bc69-f58ef7f7a3f4`, deployment
+`b0228dc8-2865-4e54-a3cb-b874f06754d8`, 100% lúc
+`2026-10-13T17:08:43.146901Z` (00:08 ngày 14/10 ở Việt Nam). Sau deploy giữ đủ
+tám bindings, gồm OCR_WORKER_URL trên dashboard và ba secrets;
+`global_fetch_strictly_public`, compatibility date, observability, SPA fallback
+và `/api/*` Worker-first giữ nguyên. PR #1 open/draft, không merge main.
+
+HTTP `/order` 200 text/html (1.373 bytes), JS `index-BJ4MsZI-.js` 200
+text/javascript (836.275 bytes), CSS `index-CH-zyVlL.css` 200 text/css
+(82.469 bytes): cả ba khớp byte build local. Health 200/ok=true/configured=true;
+snapshot chưa đăng nhập 401. Preview staging Đặt cơm/Tổng hợp đơn ở sáng/tối
+× 320/390/1440px hiển thị đồng thời roster/bill/đơn gửi quán, nút ghi read-only
+disabled, không tràn ngang/page error. Bằng chứng ignored tại
+`.superpowers/deploy-daily-workspace-20261013/` (tên theo ngày bắt đầu tác vụ).
+
+Không ghi dữ liệu thật, gọi OCR thật, gửi Chat hay deploy production. F5 với
+phiên Google thật, hai tài khoản Realtime và bàn phím mobile thật vẫn cần kiểm
+chứng riêng. Cảnh báo nền không đổi: npm audit 5 high, build chunk JS lớn
+(gzip 250,57KB); lockfile giữ nguyên.
