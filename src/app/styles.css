@@ -155,6 +155,31 @@
   }
 }
 @layer components {
+  .orders-page {
+    @apply pb-[calc(8rem+env(safe-area-inset-bottom))] md:pb-0;
+  }
+  .daily-workspace {
+    @apply grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_22rem];
+  }
+  .daily-bill .bill-editor .form-row {
+    @apply grid grid-cols-1 gap-3;
+  }
+  .daily-bill .bill-editor .field {
+    @apply min-w-0;
+  }
+  .daily-bill .bill-values {
+    @apply grid-cols-2 gap-2;
+  }
+  .daily-bill .bill-values > div {
+    @apply min-w-0 p-2;
+  }
+  .daily-bill .bill-values .bill-total {
+    @apply col-span-2 flex-row items-center justify-between;
+  }
+  .daily-workspace .table-wrap td,
+  .daily-workspace .table-wrap th {
+    @apply whitespace-normal break-words;
+  }
   [data-slot="button"] {
     @apply min-h-11;
   }

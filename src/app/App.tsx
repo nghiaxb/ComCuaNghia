@@ -17,10 +17,18 @@ import Summary from "../features/Summary";
 import Finance from "../features/Finance";
 import Audit from "../features/Audit";
 import Settings from "../features/Settings";
-export default function App() {
+export default function App({
+  client = supabase,
+  fetchSnapshot = snapshot,
+}: {
+  client?: typeof supabase;
+  fetchSnapshot?: () => Promise<Snapshot>;
+} = {}) {
   const [data, setData] = useState<Snapshot | null>(null);
   const [preview, setPreview] = useState(false);
   const [session, setSession] = useState(false);
+  const [authReady, setAuthReady] = useState(!client);
+  const [authAttempt, setAuthAttempt] = useState(0);
   const [loading, setLoading] = useState(false);
   const [loginBusy, setLoginBusy] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -35,31 +43,54 @@ export default function App() {
     [],
   );
   useEffect(() => {
-    if (!supabase) return;
-    void supabase.auth
-      .getSession()
-      .then(({ data }) => setSession(!!data.session));
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(!!s);
-      if (!s) {
+    if (!client) return;
+    let active = true;
+    let authEvents = 0;
+    const accept = (signedIn: boolean) => {
+      setSession(signedIn);
+      setAuthReady(true);
+      if (!signedIn) {
         refreshRef.current?.dispose();
         refreshRef.current = null;
         setLoading(false);
         setData(null);
         setConnected(false);
       }
+    };
+    const {
+      data: { subscription },
+    } = client.auth.onAuthStateChange((_event, s) => {
+      if (!active) return;
+      authEvents++;
+      accept(!!s);
     });
-    return () => subscription.unsubscribe();
-  }, []);
+    void client.auth
+      .getSession()
+      .then(({ data, error }) => {
+        if (!active || authEvents) return;
+        if (error) throw error;
+        accept(!!data.session);
+      })
+      .catch((error: unknown) => {
+        if (!active || authEvents) return;
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Không khôi phục được phiên đăng nhập.",
+        );
+      });
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, [client, authAttempt]);
   useEffect(() => {
-    if (!session || preview || !supabase) {
+    if (!session || preview || !client) {
       setLoading(false);
       return;
     }
     const refresh = createRefresh(
-      snapshot,
+      fetchSnapshot,
       (value) => {
         setData(value);
         setError("");
@@ -70,7 +101,7 @@ export default function App() {
     );
     refreshRef.current = refresh;
     void refresh.refresh();
-    const channel = supabase
+    const channel = client
       .channel("lunch-updates")
       .on("postgres_changes", { event: "*", schema: "public" }, () =>
         refresh.invalidate(),
@@ -85,11 +116,11 @@ export default function App() {
     return () => {
       refresh.dispose();
       if (refreshRef.current === refresh) refreshRef.current = null;
-      void supabase!.removeChannel(channel);
+      void client.removeChannel(channel);
       clearInterval(interval);
       window.removeEventListener("focus", onFocus);
     };
-  }, [session, preview, reload]);
+  }, [session, preview, reload, client, fetchSnapshot]);
   async function mutate(
     kind: string,
     payload: Record<string, unknown>,
@@ -149,9 +180,7 @@ export default function App() {
       preview={preview}
       connected={connected}
       onRefresh={() => void reload()}
-      onLogout={() =>
-        requestOrderNavigation(() => void supabase?.auth.signOut())
-      }
+      onLogout={() => requestOrderNavigation(() => void client?.auth.signOut())}
     >
       <OrderNavigationBoundary />
       {preview && (
@@ -173,12 +202,6 @@ export default function App() {
           {message}
         </div>
       )}
-      {loading && !shown && (
-        <div role="status" aria-label="Đang tải dữ liệu">
-          <Skeleton className="h-10 w-48 mb-4" />
-          <Skeleton className="h-64 w-full" />
-        </div>
-      )}
       {props ? (
         <Routes>
           <Route path="/order" element={<Orders {...props} />} />
@@ -195,6 +218,34 @@ export default function App() {
           />
           <Route path="*" element={<Navigate to="/order" />} />
         </Routes>
+      ) : !authReady || session ? (
+        <section aria-busy={loading || (!authReady && !error)}>
+          {error && (session || !authReady) ? (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setError("");
+                if (session) void reload();
+                else setAuthAttempt((attempt) => attempt + 1);
+              }}
+            >
+              {session ? "Thử tải lại dữ liệu" : "Thử khôi phục phiên"}
+            </Button>
+          ) : (
+            <div
+              role="status"
+              aria-label={
+                !authReady ? "Đang khôi phục phiên" : "Đang tải dữ liệu"
+              }
+            >
+              <p className="fine mb-4">
+                {!authReady ? "Đang khôi phục phiên…" : "Đang tải dữ liệu…"}
+              </p>
+              <Skeleton className="h-10 w-48 mb-4" />
+              <Skeleton className="h-64 w-full" />
+            </div>
+          )}
+        </section>
       ) : (
         <section className="welcome">
           <img
@@ -211,7 +262,7 @@ export default function App() {
             gọn trong một nơi.
           </h1>
           <p>Đặt món, theo dõi công nợ và cập nhật cùng đồng nghiệp.</p>
-          {!supabase ? (
+          {!client ? (
             <div className="setup">
               <h2>Kết nối hệ thống</h2>
               <p>
@@ -225,10 +276,10 @@ export default function App() {
               className="primary"
               disabled={loginBusy}
               onClick={() => {
-                if (!supabase || loginBusy) return;
+                if (!client || loginBusy) return;
                 setLoginBusy(true);
                 setError("");
-                void supabase.auth
+                void client.auth
                   .signInWithOAuth({
                     provider: "google",
                     options: {

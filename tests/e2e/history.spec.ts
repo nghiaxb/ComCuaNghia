@@ -10,7 +10,7 @@ test("employee can access an arbitrary older week and stored retired menu items"
     .getByLabel("Tuần đặt cơm", { exact: true })
     .selectOption("2026-08-03");
   await expect(
-    page.getByText("Stored retired meal", { exact: true }),
+    page.locator(".cart").getByText("Stored retired meal", { exact: true }),
   ).toBeVisible();
   await expect(
     page.locator(".cart").getByText("Original menu name", { exact: true }),

@@ -32,6 +32,15 @@ All screens/shell use Tailwind v4 and shadcn source (Radix). The CLI failed behi
 
 Final review fixes bind confirmations to subjects, keep destructive dialogs busy/retryable, wrap long mobile shared rows, restore cart focus and preserve bill drafts with original versions across remote updates.
 
+Updated UI, 2026-10-14: `/order` includes the daily roster, supplier summary,
+bill/discount editor and day lock controls together; `/summary` reuses that daily
+workspace. Permissions and server commands remain unchanged. Bill drafts persist
+across day/week selection, including empty weeks; a save acknowledgement updates
+the correct day's expected version even after its editor remounts. Remote snapshots
+still retain the draft's original version. Session restoration has a loading state
+and retry on failure; login appears only after a confirmed signed-out state.
+Automatic saved orders use a status badge instead of a disabled save button.
+
 ## Evidence and limits
 
 At the application baseline, npm ci, lint (zero warnings), format, typecheck, secret scan, 52 unit / 34 integration / 55 browser / 3 Python tests passed. Configured Vite build and Worker dry-run passed. This is historical evidence; rerun on the new environment before claiming a new baseline.

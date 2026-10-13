@@ -182,3 +182,30 @@ Regression đã RED rồi GREEN; toàn bộ 72 Playwright và baseline khác đ�
 Preview staging kiểm tra popup mở/đóng bằng bàn phím, giữ focus và không tràn
 ngang ở cả sáng/tối × 320/390/1440px. Chi tiết tại mục mới nhất trong
 [staging](staging.md).
+
+## Đặt cơm và điều phối cùng màn hình — 2026-10-14
+
+Theo phản hồi người dùng và ảnh sheet: màn Đặt cơm hiển thị đồng thời đơn của
+mọi người, đơn gửi quán, bill/giảm giá/phí và nút khóa ngày. Desktop đặt bảng đơn
+cạnh bill; mobile xếp dọc và chừa khoảng đáy để thanh giỏ không che nút lưu bill.
+Bao cơm/người trả thay nằm trong mục mở rộng. Tổng hợp đơn dùng cùng component,
+giữ tổng cả tuần. Không cần đổi route hoặc tab để điều phối cùng ngày; dữ liệu dài
+vẫn cần cuộn. Quyết toán cả tuần tiếp tục nằm ở Công nợ.
+
+Trạng thái “Đã lưu” của đơn tự lưu thành badge ở góc giỏ và thanh mobile; sửa
+đơn mới hiện thao tác lưu. F5 có skeleton khôi phục phiên/tải dữ liệu, không hiện
+login trong thời gian chờ. Lỗi khôi phục giữ trạng thái chưa xác định và cho thử
+lại. Không thêm thư viện, đổi palette/logo, SQL, RPC hoặc controller autosave.
+
+Review độc lập tìm và sửa hai race: lỗi khôi phục phiên từng bị coi là đã đăng
+xuất; ACK lưu bill đến sau đổi ngày chưa cập nhật expectedVersion cho editor
+remount. Kiểm tra guard khóa ngày còn tái hiện lỗi trả focus sau hai hộp thoại,
+đã giữ control khởi tạo trước khi mở guard. Bill draft giữ giá trị và version khi
+remote snapshot đổi; chỉ ACK của chính lần lưu mới cập nhật version.
+
+Thêm chín Playwright regression cho auth, badge, quyền, khóa ngày/nháp/focus,
+bill draft và hai thứ tự ACK/đổi ngày. Kiểm tra local sáng/tối tại 320/390/1440px
+với shell thật trên hai màn hình và fixture có đơn: không tràn ngang/page error,
+nút khóa ít nhất 44px, nút lưu bill mobile bấm được. Các kiểm tra fixture không
+chứng minh OAuth/Realtime thật hoặc bàn phím mobile thật. Xem baseline/deploy tại
+mục mới nhất trong [staging](staging.md).

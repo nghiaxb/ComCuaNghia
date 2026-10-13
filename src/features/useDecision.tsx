@@ -41,13 +41,18 @@ export function useDecision(subject = "") {
     setPending(null);
     done?.(value);
   };
-  const ask = (message: string, needsReason: boolean, action?: Action) =>
+  const ask = (
+    message: string,
+    needsReason: boolean,
+    action?: Action,
+    returnFocus?: Element | null,
+  ) =>
     new Promise<string | null>((done) => {
       if (resolve.current || running.current) {
         done(null);
         return;
       }
-      previous.current = document.activeElement;
+      previous.current = returnFocus ?? document.activeElement;
       resolve.current = done;
       setReason("");
       setError("");
@@ -156,7 +161,8 @@ export function useDecision(subject = "") {
   return {
     confirm: async (message: string, action?: Action) =>
       !!(await ask(message, false, action)),
-    prompt: (message: string, action?: Action) => ask(message, true, action),
+    prompt: (message: string, action?: Action, returnFocus?: Element | null) =>
+      ask(message, true, action, returnFocus),
     dialog,
   };
 }

@@ -3,23 +3,54 @@ import { NativeSelect } from "../components/ui/native-select";
 import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import Button from "../components/ui/ActionButton";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { BillPreview } from "../../shared/contracts";
 import type { PageProps } from "./common";
 import { Field } from "./common";
+export type BillDraft = {
+  baseVersion: number;
+  kind: BillPreview["discountKind"];
+  discount: number;
+  fee: number;
+  covered: string[];
+  sponsors: string[];
+};
 export default function BillEditor({
   data,
   bill,
   mutate,
   busy,
   readOnly,
-}: { bill: BillPreview } & PageProps) {
-  const [baseVersion, setBaseVersion] = useState(bill.version);
-  const [kind, setKind] = useState(bill.discountKind),
-    [discount, setDiscount] = useState(bill.discountValue),
-    [fee, setFee] = useState(bill.fee),
-    [covered, setCovered] = useState(bill.covered),
-    [sponsors, setSponsors] = useState(bill.sponsors);
+  initialDraft,
+  onDraftChange,
+  onSaveAcknowledged,
+  acknowledgedVersion,
+}: {
+  bill: BillPreview;
+  initialDraft?: BillDraft;
+  onDraftChange?: (draft: BillDraft) => void;
+  onSaveAcknowledged?: (version: number) => void;
+  acknowledgedVersion?: number;
+} & PageProps) {
+  const [baseVersion, setBaseVersion] = useState(
+    initialDraft?.baseVersion ?? bill.version,
+  );
+  const [kind, setKind] = useState(initialDraft?.kind ?? bill.discountKind),
+    [discount, setDiscount] = useState(
+      initialDraft?.discount ?? bill.discountValue,
+    ),
+    [fee, setFee] = useState(initialDraft?.fee ?? bill.fee),
+    [covered, setCovered] = useState(initialDraft?.covered ?? bill.covered),
+    [sponsors, setSponsors] = useState(initialDraft?.sponsors ?? bill.sponsors);
+  useEffect(() => {
+    onDraftChange?.({ baseVersion, kind, discount, fee, covered, sponsors });
+  }, [baseVersion, kind, discount, fee, covered, sponsors, onDraftChange]);
+  // Only our save acknowledgement advances a remounted editor. Remote bill
+  // snapshots must keep the draft's original expected version.
+  useEffect(() => {
+    if (acknowledgedVersion !== undefined)
+      setBaseVersion((version) => Math.max(version, acknowledgedVersion));
+  }, [acknowledgedVersion]);
   const finance =
     data.member.role === "admin" || data.member.can_manage_finance;
   if (!finance || bill.state !== "preview") return null;
@@ -73,6 +104,7 @@ export default function BillEditor({
         <Field label="Loại giảm giá">
           <NativeSelect
             value={kind}
+            disabled={busy || readOnly}
             onChange={(e) => setKind(e.target.value as typeof kind)}
           >
             <option value="none">Không giảm</option>
@@ -85,7 +117,7 @@ export default function BillEditor({
             type="number"
             min="0"
             max={kind === "percent" ? 100 : undefined}
-            disabled={kind === "none"}
+            disabled={kind === "none" || busy || readOnly}
             value={discount}
             onChange={(e) => setDiscount(Number(e.target.value))}
           />
@@ -95,6 +127,7 @@ export default function BillEditor({
             type="number"
             min="0"
             value={fee}
+            disabled={busy || readOnly}
             onChange={(e) => setFee(Number(e.target.value))}
           />
         </Field>
@@ -103,25 +136,37 @@ export default function BillEditor({
         Chia theo tiền món; người tài trợ chia đều phần được bao. Giảm tiền cố
         định tối đa bằng tiền món hiện tại.
       </p>
-      {members.map((m) => (
-        <div className="order-row" key={m.id}>
-          <span>{m.display_name}</span>
-          <label>
-            <Checkbox
-              checked={covered.includes(m.id)}
-              onCheckedChange={() => setCovered(toggle(covered, m.id))}
-            />{" "}
-            Được bao
-          </label>
-          <label>
-            <Checkbox
-              checked={sponsors.includes(m.id)}
-              onCheckedChange={() => setSponsors(toggle(sponsors, m.id))}
-            />{" "}
-            Trả thay
-          </label>
-        </div>
-      ))}
+      {!!members.length && (
+        <details>
+          <summary>
+            Bao cơm & người trả thay
+            {covered.length || sponsors.length
+              ? ` · ${covered.length} được bao, ${sponsors.length} trả thay`
+              : ""}
+          </summary>
+          {members.map((m) => (
+            <div className="order-row" key={m.id}>
+              <span>{m.display_name}</span>
+              <label>
+                <Checkbox
+                  disabled={busy || readOnly}
+                  checked={covered.includes(m.id)}
+                  onCheckedChange={() => setCovered(toggle(covered, m.id))}
+                />{" "}
+                Được bao
+              </label>
+              <label>
+                <Checkbox
+                  disabled={busy || readOnly}
+                  checked={sponsors.includes(m.id)}
+                  onCheckedChange={() => setSponsors(toggle(sponsors, m.id))}
+                />{" "}
+                Trả thay
+              </label>
+            </div>
+          ))}
+        </details>
+      )}
       {!valid && (
         <p className="error">Kiểm tra giảm giá/phí và danh sách tài trợ.</p>
       )}
@@ -141,8 +186,10 @@ export default function BillEditor({
             },
             baseVersion,
           ).then((result) => {
-            if (result && typeof result.version === "number")
+            if (result && typeof result.version === "number") {
+              onSaveAcknowledged?.(result.version);
               setBaseVersion(result.version);
+            }
           })
         }
       >

@@ -1,20 +1,14 @@
 import { useDecision } from "./useDecision";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from "../components/ui/tabs";
 import { Input } from "../components/ui/input";
 import RecipientPicker from "./RecipientPicker";
 import SaveStatus from "./SaveStatus";
 import { Sheet, SheetContent, SheetTitle } from "../components/ui/sheet";
 import Button from "../components/ui/ActionButton";
+import { Badge } from "../components/ui/badge";
 import { useOrderDraft } from "./useOrderDraft";
 import ConfirmDialog from "./ConfirmDialog";
 import { useLocation } from "react-router-dom";
-import SharedOrderOverview from "./SharedOrderOverview";
-import BillSummary, { dayBill } from "./BillSummary";
+import DailyWorkspace from "./DailyWorkspace";
 import { proxyOrder } from "../lib/api";
 import type { Order } from "../../shared/contracts";
 import { useEffect, useEffectEvent, useState, useRef } from "react";
@@ -253,12 +247,28 @@ export default function Orders({
       : currentOrder
         ? "Lưu thay đổi"
         : "Đặt bữa trưa";
+  const saved =
+    automatic && !draft.state.dirty && currentOrder?.status === "active";
+  const showSaveAction =
+    !automatic || draft.state.dirty || saveStatus === "saving";
   const cartContent = (
     <>
-      <h2>
-        <ShoppingBag size={20} />{" "}
-        {proxy ? "Đặt cơm hộ đồng nghiệp" : "Bữa trưa của bạn"}
-      </h2>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2>
+          <ShoppingBag size={20} />{" "}
+          {proxy ? "Đặt cơm hộ đồng nghiệp" : "Bữa trưa của bạn"}
+        </h2>
+        {saved && (
+          <Badge
+            variant="outline"
+            role="status"
+            aria-label="Trạng thái lưu đơn"
+            className="bg-secondary text-primary"
+          >
+            Đã lưu
+          </Badge>
+        )}
+      </div>
       <p className="muted">
         {date} · {recipient?.display_name ?? data.member.display_name}
       </p>
@@ -356,17 +366,19 @@ export default function Orders({
           </div>
         ))
       )}
-      <p
-        role="status"
-        aria-label="Trạng thái lưu đơn"
-        className={
-          ["conflict", "error", "locked", "uncertain"].includes(saveStatus)
-            ? "error"
-            : "fine"
-        }
-      >
-        {statusText}
-      </p>
+      {!saved && (
+        <p
+          role="status"
+          aria-label="Trạng thái lưu đơn"
+          className={
+            ["conflict", "error", "locked", "uncertain"].includes(saveStatus)
+              ? "error"
+              : "fine"
+          }
+        >
+          {statusText}
+        </p>
+      )}
       {saveStatus === "uncertain" && (
         <Button className="secondary" onClick={() => void draft.retry()}>
           Thử lưu lại
@@ -388,13 +400,15 @@ export default function Orders({
         <span>Tạm tính</span>
         <strong>{vnd(total)}</strong>
       </div>
-      <Button
-        className="primary wide"
-        disabled={saveBlocked}
-        onClick={saveOrder}
-      >
-        {cta}
-      </Button>
+      {showSaveAction && (
+        <Button
+          className="primary wide"
+          disabled={saveBlocked}
+          onClick={saveOrder}
+        >
+          {cta}
+        </Button>
+      )}
       {currentOrder?.status === "active" && (
         <Button
           className="text-button wide"
@@ -583,24 +597,14 @@ export default function Orders({
           </Sheet>
         )}
       </div>
-      {day && (
-        <Tabs defaultValue="people" className="mt-6">
-          <TabsList className="mb-3 min-h-11">
-            <TabsTrigger value="people" className="min-h-11">
-              Đơn mọi người
-            </TabsTrigger>
-            <TabsTrigger value="bill" className="min-h-11">
-              Bill & chia tiền
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="people">
-            <SharedOrderOverview data={data} dayId={day.id} compact />
-          </TabsContent>
-          <TabsContent value="bill">
-            <BillSummary bill={dayBill(data, day.id)} />
-          </TabsContent>
-        </Tabs>
-      )}
+      <DailyWorkspace
+        data={data}
+        dayId={day?.id ?? ""}
+        mutate={mutate}
+        busy={busy || saveStatus === "saving"}
+        readOnly={readOnly}
+        guard={draft.guard}
+      />
       {draft.modeConsent && (
         <ConfirmDialog
           title="Bật tự lưu cho bản nháp?"
@@ -662,15 +666,15 @@ export default function Orders({
       <section className="mobile-order-bar" aria-label="Thao tác đơn cơm">
         <div className="col-span-2">
           <SaveStatus
-            text={statusText}
-            status={saveStatus}
+            text={saved ? "Đã lưu" : statusText}
+            status={saved ? "saved" : saveStatus}
             dirty={draft.state.dirty}
             onRetry={() => void draft.retry()}
             retryDisabled={blocked}
           />
         </div>
         <Button
-          className="text-button"
+          className={"text-button" + (showSaveAction ? "" : " col-span-2")}
           ref={cartTrigger}
           onClick={() => setCartOpen(true)}
         >
@@ -680,9 +684,15 @@ export default function Orders({
             <strong>{vnd(total)}</strong>
           </span>
         </Button>
-        <Button className="primary" disabled={saveBlocked} onClick={saveOrder}>
-          {automatic ? cta : busy ? "Đang lưu…" : "Lưu đơn"}
-        </Button>
+        {showSaveAction && (
+          <Button
+            className="primary"
+            disabled={saveBlocked}
+            onClick={saveOrder}
+          >
+            {automatic ? cta : busy ? "Đang lưu…" : "Lưu đơn"}
+          </Button>
+        )}
       </section>
     </div>
   );

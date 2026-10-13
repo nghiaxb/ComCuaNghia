@@ -22,9 +22,7 @@ test("two pages share proxy autosave, totals, cancellation and menu changes thro
   await b.clock.runFor(300);
   const bill = b.getByRole("region", { name: "Bill trong ngày" }),
     roster = b.getByRole("region", { name: "Đơn của mọi người" });
-  await b.getByRole("tab", { name: "Bill & chia tiền" }).click();
   await expect(bill).toContainText("32.500");
-  await b.getByRole("tab", { name: "Đơn mọi người" }).click();
   await expect(roster).toContainText("Nghĩa · đặt/chỉnh hộ");
   await expect(b.getByRole("list").getByRole("status").first()).toHaveText("1");
   a.on("dialog", (d) => d.accept());
@@ -34,9 +32,7 @@ test("two pages share proxy autosave, totals, cancellation and menu changes thro
     .getByRole("button", { name: "Xác nhận", exact: true })
     .click();
   await b.clock.runFor(300);
-  await b.getByRole("tab", { name: "Đơn mọi người" }).click();
   await expect(roster).toContainText("Đã huỷ");
-  await b.getByRole("tab", { name: "Bill & chia tiền" }).click();
   await expect(bill).toContainText("0");
   await a
     .getByRole("list")
@@ -45,14 +41,12 @@ test("two pages share proxy autosave, totals, cancellation and menu changes thro
     .click();
   await a.clock.runFor(700);
   await b.clock.runFor(300);
-  await b.getByRole("tab", { name: "Bill & chia tiền" }).click();
   await expect(bill).toContainText("32.500");
   const before = Number(
     await b.getByLabel("Số lần tải snapshot").textContent(),
   );
   await a.getByRole("button", { name: "Cập nhật giá và burst" }).click();
   await b.clock.runFor(300);
-  await b.getByRole("tab", { name: "Bill & chia tiền" }).click();
   await expect(bill).toContainText("37.000");
   expect(
     Number(await b.getByLabel("Số lần tải snapshot").textContent()) - before,
@@ -60,7 +54,6 @@ test("two pages share proxy autosave, totals, cancellation and menu changes thro
   await a.clock.runFor(300);
   await a.getByRole("button", { name: "Đổi tên món" }).click();
   await b.clock.runFor(300);
-  await b.getByRole("tab", { name: "Đơn mọi người" }).click();
   await expect(roster).toContainText("Đã huỷ");
   await expect(b.getByRole("list").getByRole("status").first()).toHaveText("0");
   await a.getByRole("button", { name: "Khoá ngày" }).click();
